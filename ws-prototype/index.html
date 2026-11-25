@@ -1,0 +1,2599 @@
+<!DOCTYPE html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Workflow Studio</title>
+<style>
+:root{
+  --bg:#f1f3f7; --panel:#fff; --line:#e4e7ee; --line2:#eceff4;
+  --text:#1b2733; --muted:#7c8798; --muted2:#98a2b3;
+  --green:#12a05c; --green-d:#0d8a4d; --green-bg:#e4f6ec; --green-tx:#0f7c47;
+  --red:#c8382c; --red-bg:#fde5e2; --amber-bg:#fff2d6; --amber-tx:#8a6100;
+  --chip:#eef1f6; --chip-tx:#495468; --draft-bg:#eef1f6; --draft-tx:#5b6676;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;font-family:Inter,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--text);font-size:14px}
+button{font-family:inherit}
+a{color:inherit}
+
+/* top bar */
+.topbar{height:56px;background:#fff;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;padding:0 14px;position:sticky;top:0;z-index:30}
+.tb-left{display:flex;align-items:center;gap:10px;min-width:0}
+.tb-right{display:flex;align-items:center;gap:14px;color:#5b6676}
+.icon-btn{background:none;border:0;padding:6px;border-radius:8px;cursor:pointer;color:#4b5666;display:inline-flex;align-items:center;justify-content:center}
+.icon-btn:hover{background:#f1f3f7}
+.proj{display:inline-flex;align-items:center;gap:8px;background:none;border:0;cursor:pointer;font-size:14px;color:var(--text);padding:6px 8px;border-radius:8px}
+.proj:hover{background:#f1f3f7}
+.tb-sep{width:1px;height:24px;background:var(--line)}
+.crumbs{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted);white-space:nowrap;overflow:hidden}
+.crumbs .sep{color:#c3c9d4}
+.crumbs .cur{color:var(--text)}
+.balance{font-size:14px;color:#3f4a5a}
+.avatar-top{width:34px;height:34px;border-radius:50%;background:#f3d7de;color:#8a4356;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600}
+
+/* shell + rail */
+.shell{display:flex;height:calc(100vh - 56px)}
+.rail{width:64px;flex:0 0 64px;background:#fff;border-right:1px solid var(--line);display:flex;flex-direction:column;align-items:center;gap:6px;padding:10px 0;z-index:20}
+.rail-btn{width:42px;height:42px;border-radius:10px;border:0;background:none;color:#67707e;display:flex;align-items:center;justify-content:center;cursor:pointer;position:relative}
+.rail-btn:hover{background:#f1f3f7;color:#1b2733}
+.rail-btn.on{background:#e8f6ee;color:var(--green-tx)}
+.rail-sep{width:26px;height:1px;background:var(--line);margin:6px 0}
+.rail-spacer{flex:1}
+.rail-btn .tip{position:absolute;left:52px;top:50%;transform:translateY(-50%);background:#1f2937;color:#fff;font-size:12px;padding:5px 9px;border-radius:6px;white-space:nowrap;opacity:0;pointer-events:none;transition:opacity .12s;z-index:5}
+.rail-btn:hover .tip{opacity:1}
+
+/* main */
+main{flex:1;min-width:0;display:flex;flex-direction:column;position:relative}
+.canvas-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;padding:20px 24px 14px;flex-wrap:wrap}
+.canvas-head h1{margin:0;font-size:26px;font-weight:600;letter-spacing:-.2px}
+.canvas-head .sub{color:var(--muted);font-size:13px;margin-top:4px}
+.head-right{display:flex;align-items:center;gap:16px;flex-wrap:wrap;padding-top:4px}
+.head-link{display:inline-flex;align-items:center;gap:6px;color:#55606f;font-size:13px;cursor:pointer;white-space:nowrap}
+.head-link:hover{color:var(--text)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:0;border-radius:8px;padding:10px 16px;font-size:14px;font-weight:600;cursor:pointer;white-space:nowrap}
+.btn.green{background:var(--green);color:#fff}
+.btn.green:hover{background:var(--green-d)}
+.btn.white{background:#fff;color:#2c3644;border:1px solid #d5dae3}
+.btn.white:hover{background:#f6f7f9}
+.btn.danger{background:#fff;color:var(--red);border:1px solid #f0cbc7}
+.btn.danger:hover{background:#fdf2f0}
+.btn.sm{padding:6px 11px;font-size:12.5px;border-radius:7px}
+.btn:disabled{opacity:.45;cursor:not-allowed;filter:none}
+
+/* canvas */
+.canvas-wrap{position:relative;flex:1;margin:0 24px 24px;background:#fff;border:1px solid var(--line);border-radius:14px;overflow:hidden;
+  background-image:radial-gradient(#d5d8de 1px,transparent 1px);background-size:20px 20px;min-height:420px}
+.canvas-empty{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;text-align:center;padding:24px}
+.big-plus{width:62px;height:62px;border-radius:50%;border:1.5px dashed #c6cedb;background:#fff;color:#8a95a5;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:border-color .15s,color .15s,transform .15s}
+.big-plus:hover{border-color:var(--green);color:var(--green);transform:scale(1.04)}
+.canvas-empty h3{margin:6px 0 0;font-size:17px;font-weight:600}
+.canvas-empty p{margin:0;color:var(--muted);font-size:13.5px;max-width:360px;line-height:1.5}
+.link-primary{color:var(--green-tx);font-size:13px;cursor:pointer;text-decoration:none;border-bottom:1px dashed #bfe3d0}
+.card{background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px 16px 12px;cursor:grab;transition:box-shadow .15s,border-color .15s;overflow:hidden;user-select:none;box-shadow:0 2px 8px rgba(20,30,50,.06)}
+.card:hover{border-color:#cfd6e2;box-shadow:0 8px 22px rgba(20,30,50,.10)}
+.card.dragging{cursor:grabbing;box-shadow:0 14px 34px rgba(20,30,50,.20);border-color:var(--green);z-index:10}
+.card.sel{border-color:var(--green);box-shadow:0 0 0 3px rgba(18,160,92,.14)}
+.card:focus{outline:2px solid var(--green);outline-offset:2px}
+.card{position:absolute;width:272px}
+.card-head{display:flex;align-items:flex-start;gap:10px;min-width:0}
+.av{width:38px;height:38px;flex:0 0 38px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:12.5px;font-weight:700;color:#5b4450}
+.card-titles{min-width:0;flex:1}
+.card-title{font-size:15.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.card-sub{display:flex;align-items:center;gap:5px;color:var(--muted);font-size:12.5px;margin-top:4px;min-width:0}
+.card-sub span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.card-foot{display:flex;align-items:center;gap:6px;margin-top:14px;flex-wrap:wrap}
+.card-repl{display:inline-flex;align-items:center;gap:2px;border:1px solid #dde3ec;border-radius:6px;padding:1px 2px;background:#fff}
+.card-repl-btn{width:18px;height:18px;line-height:1;border:0;background:#f1f4f8;color:#3c4757;border-radius:4px;cursor:pointer;font-size:12px;padding:0}
+.card-repl-btn:hover{background:#e3eaf3}
+.card-repl-val{font-size:11.5px;font-weight:600;min-width:16px;text-align:center;color:#3c4757}
+.badge{display:inline-flex;align-items:center;gap:6px;padding:3px 9px;border-radius:7px;font-size:12px;font-weight:500;white-space:nowrap}
+.badge .dot{width:6px;height:6px;border-radius:50%;background:currentColor}
+.badge.ok{background:var(--green-bg);color:var(--green-tx)}
+.badge.err{background:var(--red-bg);color:var(--red)}
+.badge.warn{background:var(--amber-bg);color:var(--amber-tx)}
+.badge.draft{background:var(--draft-bg);color:var(--draft-tx)}
+.ago{color:var(--muted);font-size:12px;margin-left:auto;white-space:nowrap}
+.type-chip{display:inline-flex;align-items:center;gap:5px;background:var(--chip);color:var(--chip-tx);border-radius:6px;padding:3px 8px;font-size:11.5px;max-width:100%;min-width:0;flex:0 1 auto}
+.type-chip span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.link-layer{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;overflow:visible}
+
+/* overlay (подтверждение удаления) */
+.overlay{position:fixed;inset:0;background:rgba(23,29,38,.38);display:flex;align-items:center;justify-content:center;z-index:60;padding:24px}
+.modal-close{background:#f1f3f7;border:0;width:34px;height:34px;border-radius:50%;cursor:pointer;font-size:18px;color:#5b6676;display:flex;align-items:center;justify-content:center}
+.modal-close:hover{background:#e6e9ef}
+
+/* drawer */
+.drawer-bg{position:fixed;inset:0;background:rgba(23,29,38,.26);opacity:0;pointer-events:none;transition:opacity .2s;z-index:50}
+.drawer-bg.open{opacity:1;pointer-events:auto}
+.drawer{position:fixed;top:0;right:0;height:100vh;width:690px;max-width:96vw;background:#fff;z-index:55;transform:translateX(102%);transition:transform .24s ease;display:flex;flex-direction:column;box-shadow:-16px 0 40px rgba(15,25,45,.18)}
+.drawer.open{transform:translateX(0)}
+.dr-head{padding:16px 22px 0;border-bottom:1px solid var(--line)}
+.dr-title-row{display:flex;align-items:flex-start;justify-content:space-between;gap:14px}
+.dr-title{font-size:22px;font-weight:600;margin:0;letter-spacing:-.2px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.dr-sub{color:var(--muted);font-size:13px;margin-top:5px;word-break:break-all}
+.dr-tabs{display:flex;gap:4px;margin-top:14px;flex-wrap:wrap}
+.dr-tab{border:0;background:none;padding:9px 13px;font-size:13.5px;color:#5b6676;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px}
+.dr-tab:hover{color:var(--text)}
+.dr-tab.on{color:var(--green-tx);font-weight:600;border-bottom-color:var(--green)}
+.dr-body{padding:18px 22px 28px;overflow:auto;flex:1}
+.section{margin-bottom:20px}
+.section h4{margin:0 0 10px;font-size:12.5px;letter-spacing:.5px;color:#5b6677;text-transform:uppercase}
+.drow{display:grid;grid-template-columns:24px 1fr auto;align-items:center;gap:10px;padding:12px 0;border-bottom:1px dashed #e6e9ef}
+.drow .dico{color:#93a0b1;display:flex}
+.drow .dlabel{color:#6b7787}
+.drow .dval{color:#1b2733;text-align:right;max-width:310px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.drow .dval.link{color:var(--green)}
+.drow.actions{border-bottom:0;padding:8px 0 0}
+.link-btn{background:none;border:0;color:var(--green);font-size:13px;cursor:pointer;padding:0 4px}
+.link-btn:hover{text-decoration:underline}
+.mono{font-family:"Cascadia Mono",Consolas,monospace;font-size:12.5px}
+.box{border:1px solid var(--line);border-radius:12px;padding:14px}
+.box-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px}
+.box-head b{font-size:14px}
+.box-row{display:flex;align-items:center;justify-content:space-between;gap:12px;font-size:13.5px;padding:4px 0;color:#495468}
+.box-row span:first-child{color:#7c8798}
+.hint-text{color:#8a95a5;font-size:12px;margin-top:8px;line-height:1.45}
+.d-actions{display:flex;gap:10px;margin-top:18px;flex-wrap:wrap}
+.cfg-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.cfg{border:1.5px solid #dfe4ec;border-radius:10px;padding:11px;cursor:pointer;background:#fff;transition:border-color .15s,box-shadow .15s}
+.cfg:hover{border-color:#c3ccda}
+.cfg.active{border-color:var(--green);box-shadow:0 0 0 3px rgba(18,160,92,.12)}
+.cfg-name{font-weight:600;font-size:13.5px;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.cfg-tag{background:var(--green-bg);color:var(--green-tx);font-size:10px;border-radius:4px;padding:1px 5px;font-weight:600}
+.cfg-desc{color:var(--muted);font-size:11.5px;margin-top:4px;line-height:1.3}
+.cfg-spec{color:#495468;font-size:12px;margin-top:7px}
+.cfg-cost{font-weight:600;font-size:13px;margin-top:5px}
+/* создание сервиса: репозиторий выбирается один раз и заблокирован после создания */
+.locked{display:flex;align-items:center;gap:9px;background:#f4f6f9;border:1px solid #e2e6ee;border-radius:8px;padding:11px 13px;color:#5b6676;font-size:13.5px}
+.locked .ico{color:#93a0b1;display:flex;flex:0 0 auto}
+.locked .val{color:#3c4757;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.locked .tag{margin-left:auto;background:#e8ecf3;color:#5a6577;border-radius:6px;padding:2px 7px;font-size:11px;font-weight:600;white-space:nowrap}
+input.in:disabled,select.in:disabled{background:#f4f6f9;color:#8a95a5;cursor:not-allowed}
+.empty-tab{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:9px;text-align:center;padding:44px 24px;border:1px dashed #dfe4ec;border-radius:12px;color:var(--muted)}
+.empty-tab .ico{color:#b3bcc9;display:flex}
+.empty-tab b{color:var(--text);font-size:14.5px}
+.empty-tab span{font-size:13px;line-height:1.45;max-width:320px}
+.create-note{display:flex;gap:9px;background:#eef4fb;color:#2f5f8f;border-radius:8px;padding:10px 11px;font-size:12.5px;line-height:1.45;margin-bottom:18px}
+.create-note svg{flex:0 0 15px;margin-top:1px}
+/* модалка создания: по центру экрана, а не в дровере */
+.create-modal{background:#fff;border-radius:16px;width:780px;max-width:96vw;max-height:92vh;display:flex;flex-direction:column;box-shadow:0 24px 60px rgba(15,25,45,.28);overflow:hidden}
+.create-modal-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;padding:22px 24px 0}
+.create-modal-head h2{margin:0;font-size:21px;font-weight:600;letter-spacing:-.2px}
+.create-modal-head p{margin:6px 0 0;color:var(--muted);font-size:13px;line-height:1.45}
+.create-modal-body{padding:18px 24px 24px;overflow:auto}
+.create-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.create-tile{border:1px solid var(--line);border-radius:12px;padding:13px;cursor:pointer;background:#fff;text-align:left;transition:border-color .15s,box-shadow .15s}
+.create-tile:hover{border-color:var(--green);box-shadow:0 0 0 3px rgba(18,160,92,.10)}
+.create-tile:focus{outline:2px solid var(--green);outline-offset:1px}
+.create-tile .t-ico{width:34px;height:34px;border-radius:9px;background:#f1f3f7;display:flex;align-items:center;justify-content:center;color:#4b5666;margin-bottom:9px}
+.create-tile b{display:block;font-size:13.5px}
+.create-tile small{display:block;color:var(--muted);font-size:11.5px;margin-top:3px;line-height:1.3}
+@media (max-width:760px){ .create-grid{grid-template-columns:1fr 1fr} }
+label.f{display:block;font-size:13.5px;font-weight:600;color:#3c4757;margin:16px 0 7px}
+label.f:first-child{margin-top:0}
+input.in,select.in,textarea.in{width:100%;padding:11px 13px;border:1px solid #d8dde6;border-radius:8px;font-size:13.5px;color:var(--text);background:#fff;outline:none;font-family:inherit}
+input.in:focus,select.in:focus,textarea.in:focus{border-color:#b9c2d0;box-shadow:0 0 0 3px #eef2f7}
+textarea.in{resize:vertical;min-height:70px}
+.counter{text-align:right;color:#9aa4b2;font-size:12px;margin-top:5px}
+.info{display:flex;gap:9px;background:#eef4fb;color:#2f5f8f;border-radius:8px;padding:10px 11px;font-size:12.5px;margin-top:12px;line-height:1.45}
+.info svg{flex:0 0 15px;margin-top:1px}
+.note-warn{background:var(--amber-bg);color:var(--amber-tx)}
+.note-err{background:var(--red-bg);color:var(--red)}
+.tabs{display:inline-flex;background:#f1f3f7;border-radius:8px;padding:3px;gap:2px}
+.tab{border:0;background:none;padding:7px 14px;border-radius:6px;font-size:13px;color:#5b6676;cursor:pointer}
+.tab.active{background:#fff;color:var(--text);box-shadow:0 1px 3px rgba(20,30,50,.12);font-weight:600}
+.price{border:1px solid var(--line);border-radius:12px;padding:14px;margin-top:14px}
+.pill-free{display:inline-block;background:var(--green);color:#fff;border-radius:6px;padding:3px 8px;font-size:11.5px;font-weight:600}
+.price-top-row{display:flex;align-items:center;justify-content:space-between;margin-top:12px;color:#3c4757;font-size:13.5px}
+.price-top-row .muted{color:var(--muted2);font-size:12.5px}
+.price-total{font-size:26px;font-weight:600;margin:3px 0 5px;letter-spacing:-.3px}
+.price-note{display:flex;align-items:center;gap:7px;color:#6b7787;font-size:12.5px}
+.price-toggle{display:flex;align-items:center;justify-content:space-between;width:100%;background:none;border:0;padding:12px 0 5px;font-size:13.5px;color:#2c3644;cursor:pointer}
+.pblock{border:1px solid #e9ecf1;border-radius:8px;padding:10px;margin:8px 0}
+.pblock .phead{display:flex;align-items:center;justify-content:space-between;font-weight:600;font-size:13px;margin-bottom:6px}
+.pblock .ptag{background:#eef1f6;color:#5a6577;font-size:11px;border-radius:5px;padding:1px 6px;font-weight:500}
+.pline{display:flex;align-items:center;justify-content:space-between;gap:12px;color:#6b7787;font-size:12.5px;padding:2px 0}
+.pline span:last-child{color:#3c4757;white-space:nowrap}
+.pcost{display:flex;justify-content:flex-end;font-size:12.5px;font-weight:600;color:#2c3644;margin-top:5px}
+.port-row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.port-row input.in{max-width:150px}
+.hint-chip{background:#eef1f6;color:#5a6577;border-radius:6px;padding:3px 8px;font-size:11px;font-weight:500}
+table.hist{width:100%;border-collapse:collapse;font-size:13px}
+table.hist th{text-align:left;color:#8a95a5;font-weight:500;font-size:12px;padding:8px;border-bottom:1px solid var(--line)}
+table.hist td{padding:9px 8px;border-bottom:1px dashed #e9ecf1;color:#3c4757}
+.logbox{background:#0a0c10;border:1px solid #1b2230;border-radius:10px;padding:14px;font-family:"Cascadia Mono",Consolas,monospace;font-size:11.5px;line-height:1.65;color:#c9d3e0;max-height:340px;overflow:auto}
+.logbox .t{color:#6b7a8d}.logbox .w{color:#f0c674}.logbox .e{color:#ef8b80}.logbox .s{color:#7fd1a1}
+.select-inline{padding:6px 9px;border:1px solid #dde1e8;border-radius:8px;font-size:12px;background:#fff;color:#3c4757}
+.repl-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:6px}
+.repl-cell{border:1px solid #e2e6ee;border-radius:10px;padding:10px 12px;background:#fff}
+.repl-label{display:block;font-size:12.5px;color:#5b6676;margin-bottom:6px}
+.repl-ctl{display:flex;align-items:center;gap:8px}
+.repl-ctl .val{font-size:20px;font-weight:600;min-width:34px;text-align:center}
+.repl-ctl .btn{width:30px;height:30px;padding:0;font-size:16px;border-radius:8px;background:#fff;border:1px solid #d5dae3;color:#3c4757}
+.type-badge{display:inline-flex;align-items:center;gap:6px;background:#f1f3f7;color:#4b5666;border-radius:6px;padding:3px 8px;font-size:11.5px;font-weight:600}
+
+/* spaces list */
+#spaces-view{display:none;flex:1;min-height:0;overflow:auto;padding:20px 24px 28px;flex-direction:column;gap:18px}
+.spaces-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.spaces-head h1{margin:0;font-size:26px;font-weight:600;letter-spacing:-.2px}
+.spaces-head .sub{color:var(--muted);font-size:13px;margin-top:4px}
+.spaces-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px;align-content:start}
+.space-card{background:#fff;border:1px solid var(--line);border-radius:12px;padding:16px;cursor:pointer;text-align:left;transition:border-color .15s,box-shadow .15s;box-shadow:0 2px 8px rgba(20,30,50,.06)}
+.space-card:hover{border-color:#cfd6e2;box-shadow:0 8px 22px rgba(20,30,50,.10)}
+.space-card:focus{outline:2px solid var(--green);outline-offset:2px}
+.sc-top{display:flex;align-items:center;gap:10px;min-width:0}
+.sc-ico{width:38px;height:38px;flex:0 0 38px;border-radius:10px;background:#e8f6ee;color:var(--green-tx);display:flex;align-items:center;justify-content:center}
+.sc-name{font-size:15.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sc-meta{color:var(--muted);font-size:12.5px;margin-top:4px}
+.sc-foot{display:flex;align-items:center;gap:6px;margin-top:14px;flex-wrap:wrap}
+.sc-settings{margin-left:auto;background:#f1f3f7;border:0;width:30px;height:30px;border-radius:8px;color:#5b6676;display:inline-flex;align-items:center;justify-content:center;cursor:pointer}
+.sc-settings:hover{background:#e6e9ef;color:var(--text)}
+.spaces-empty{background:#fff;border:1px dashed #cfd6e2;border-radius:14px;min-height:320px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;text-align:center;padding:24px}
+.spaces-empty h3{margin:6px 0 0;font-size:17px;font-weight:600}
+.spaces-empty p{margin:0;color:var(--muted);font-size:13.5px;max-width:400px;line-height:1.5}
+
+
+/* workflow editor */
+.wf-shell{display:flex;gap:20px;align-items:flex-start}
+.wf-subnav{width:214px;flex:0 0 214px;background:#fff;border:1px solid var(--line);border-radius:12px;padding:10px}
+.wf-back{display:flex;align-items:center;gap:6px;background:none;border:0;color:#5b6676;font-size:12.5px;cursor:pointer;padding:7px 8px;border-radius:8px;margin-bottom:8px;width:100%;text-align:left}
+.wf-back:hover{background:#f1f3f7;color:var(--text)}
+.wf-nav-item{display:block;width:100%;text-align:left;background:none;border:0;padding:9px 10px;border-radius:8px;font-size:13.5px;color:#3c4757;cursor:pointer}
+.wf-nav-item:hover{background:#f4f6f9}
+.wf-nav-item.on{background:#e4f6ec;color:var(--green-tx);font-weight:600}
+.wf-main{flex:1;min-width:0}
+.wf-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:14px}
+.wf-title{display:flex;align-items:center;gap:8px;min-width:0}
+.wf-title h1{margin:0;font-size:24px;font-weight:600;letter-spacing:-.2px;overflow:hidden;text-overflow:ellipsis}
+.wf-meta{display:flex;align-items:center;gap:10px;margin-top:6px;color:var(--muted);font-size:12.5px;flex-wrap:wrap}
+.wf-chip{background:#e8eef7;color:#3d5875;border-radius:6px;padding:2px 8px;font-size:11.5px;font-weight:600}
+.wf-actions{display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding-top:6px}
+.wf-link{color:#55606f;font-size:13px;cursor:pointer;white-space:nowrap}
+.wf-link:hover{color:var(--text)}
+.wf-zoom{position:absolute;left:12px;bottom:12px;display:flex;flex-direction:column;gap:4px;background:#fff;border:1px solid var(--line);border-radius:10px;padding:4px;box-shadow:0 2px 8px rgba(20,30,50,.08)}
+.wf-zoom button{width:28px;height:28px;border:0;background:none;border-radius:6px;color:#4b5666;cursor:pointer;font-size:15px;line-height:1}
+.wf-zoom button:hover{background:#f1f3f7}
+.wf-panel{background:#fff;border:1px solid var(--line);border-radius:12px;padding:16px}
+.wf-panel h4{margin:0 0 12px;font-size:12.5px;letter-spacing:.5px;color:#5b6677;text-transform:uppercase}
+.wf-panel + .wf-panel{margin-top:14px}
+.wf-var{display:grid;grid-template-columns:1fr 1.4fr auto;gap:10px;align-items:center;padding:9px 0;border-bottom:1px dashed #e9ecf1;font-size:13px}
+.wf-var:last-child{border-bottom:0}
+.wf-var .name{font-family:"Cascadia Mono",Consolas,monospace;font-size:12.5px;color:#3c4757}
+.wf-var .val{color:#6b7787;font-family:"Cascadia Mono",Consolas,monospace;font-size:12.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.wf-trig{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px dashed #e9ecf1}
+.wf-trig:last-child{border-bottom:0}
+.wf-trig b{font-size:13.5px;font-weight:600}
+.wf-trig small{display:block;color:var(--muted);font-size:12px;margin-top:2px}
+.wf-toolbar{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:14px}
+.wf-toolbar h1{margin:0;font-size:24px;font-weight:600;letter-spacing:-.2px}
+.wf-toolbar .sub{color:var(--muted);font-size:13px;margin-top:4px}
+.wf-canvas{position:relative;height:calc(100vh - 250px);min-height:380px;overflow:auto;border:1px solid var(--line);border-radius:14px;background:#fbfcfe;background-image:radial-gradient(#d9dde4 1px,transparent 1px);background-size:20px 20px}
+.wf-inner{position:relative;width:1100px;height:420px;margin:24px auto}
+.wf-links{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;overflow:visible}
+.wf-node{position:absolute;width:216px;background:#fff;border:1px solid #dfe4ec;border-radius:12px;box-shadow:0 4px 14px rgba(20,30,50,.08);padding:12px;cursor:pointer;transition:border-color .15s,box-shadow .15s}
+.wf-node:hover{border-color:var(--green);box-shadow:0 8px 20px rgba(20,30,50,.12)}
+.wf-node:focus{outline:2px solid var(--green);outline-offset:2px}
+.wf-node .wn-head{display:flex;align-items:center;gap:8px;min-width:0}
+.wf-node .wn-ico{width:28px;height:28px;flex:0 0 28px;border-radius:8px;background:#eef2f7;color:#37506b;display:flex;align-items:center;justify-content:center}
+.wf-node .wn-title{font-weight:600;font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.wf-node .wn-sub{color:var(--muted);font-size:11.5px;margin-top:8px;line-height:1.35}
+.wf-node .wn-dot{position:absolute;width:10px;height:10px;border-radius:50%;background:#fff;border:2px solid var(--green);top:50%;margin-top:-5px}
+.wf-node .wn-dot.in{left:-6px}
+.wf-node .wn-dot.out{right:-6px}
+.wf-note{position:absolute;left:50%;transform:translateX(-50%);bottom:12px;color:#8a95a5;font-size:12px;white-space:nowrap}
+
+/* mini workflow steps in drawer */
+.wf-mini{display:flex;align-items:center;gap:0;margin-top:12px;padding:2px 0;overflow:hidden}
+.wf-mini .wm-ico{width:30px;height:30px;flex:0 0 30px;border-radius:8px;background:#eef2f7;border:1px solid #dfe4ec;color:#37506b;display:flex;align-items:center;justify-content:center;position:relative;z-index:1}
+.wf-mini .wm-line{flex:1 1 auto;min-width:12px;height:2px;background:#cfe6d9;position:relative}
+.wf-mini .wm-line:after{content:'';position:absolute;right:0;top:-3px;border-left:5px solid #9dcfb4;border-top:4px solid transparent;border-bottom:4px solid transparent}
+
+/* view switching */
+#canvas-view{display:flex;flex-direction:column;flex:1;min-height:0}
+#editor-view{display:none;flex:1;min-height:0;overflow:auto;padding:20px 24px 28px}
+
+/* modal */
+.modal{background:#fff;border-radius:16px;width:560px;max-width:96vw;padding:24px;box-shadow:0 24px 60px rgba(15,25,45,.25)}
+.modal h2{margin:0;font-size:22px;font-weight:600}
+.modal-footer{display:flex;justify-content:flex-end;gap:10px;margin-top:22px}
+
+/* toast */
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1f2937;color:#fff;padding:10px 18px;border-radius:8px;font-size:13px;z-index:90;display:none;max-width:80vw;text-align:center;box-shadow:0 10px 30px rgba(0,0,0,.2)}
+.toast.show{display:block}
+
+@media (max-width:900px){
+  .cfg-grid{grid-template-columns:1fr}
+}
+
+.var-add{display:grid;grid-template-columns:1fr 1.3fr 120px auto;gap:8px;margin-bottom:12px}
+.var-add input,.var-add select{border:1px solid var(--line);border-radius:8px;padding:7px 9px;font:inherit;font-size:13px;min-width:0}
+.var-row{display:grid;grid-template-columns:1fr 1.2fr auto auto;gap:8px;align-items:center;padding:8px 0;border-bottom:1px dashed #e9ecf1;font-size:12.5px}
+.var-row:last-child{border-bottom:0}.var-row .nm{font-family:Consolas,monospace;color:#3c4757;overflow:hidden;text-overflow:ellipsis}
+.var-row .vl{font-family:Consolas,monospace;color:#6b7787;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.var-err{color:var(--red);font-size:12px;min-height:16px;margin-bottom:6px}
+
+/* пакетная таблица переменных */
+.var-table{display:flex;flex-direction:column;gap:8px}
+.var-edit{display:grid;grid-template-columns:1fr 1.2fr 118px auto;gap:8px;align-items:center}
+.var-edit input,.var-edit select{border:1px solid var(--line);border-radius:8px;padding:7px 9px;font:inherit;font-size:12.5px;min-width:0;width:100%}
+.var-edit input.nm{font-family:Consolas,monospace}
+.var-empty{color:var(--muted);font-size:12.5px;padding:6px 0}
+
+/* поповер потребления запусков */
+.cons-backdrop{position:fixed;inset:0;z-index:76;background:transparent}
+.cons-pop{position:fixed;top:64px;right:20px;width:372px;max-width:calc(100vw - 32px);background:#fff;border:1px solid var(--line);border-radius:14px;box-shadow:0 22px 60px rgba(15,25,45,.24);z-index:77;overflow:hidden}
+.cons-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 16px;border-bottom:1px solid var(--line2)}
+.cons-title{font-size:15px;font-weight:600;letter-spacing:-.1px}
+.cons-body{padding:14px 16px 16px}
+.cons-usage{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:12.5px;color:#5b6676;margin-bottom:7px}
+.cons-usage b{color:#2c3644}
+.cons-bar{height:8px;background:#eef1f6;border-radius:999px;overflow:hidden}
+.cons-bar span{display:block;height:100%;background:var(--green);border-radius:999px}
+.cons-bar.thin{height:6px}
+.cons-line{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:12.5px;color:#5b6676;margin-top:8px;flex-wrap:wrap}
+.cons-line .date{color:var(--muted)}
+.cons-free-label{font-size:10.5px;letter-spacing:.6px;color:#5b6677;text-transform:uppercase;font-weight:700;margin:14px 0 7px}
+.cons-note{font-size:12.5px;color:#6b7787;line-height:1.45;margin:10px 0 0}
+.cons-warn{display:flex;gap:8px;align-items:flex-start;background:var(--amber-bg);color:var(--amber-tx);border-radius:8px;padding:9px 11px;font-size:12.5px;line-height:1.4;margin-top:10px}
+.cons-div{height:1px;background:var(--line2);margin:14px 0}
+.cons-runner-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:10px}
+.cons-runner-name{font-size:13.5px;font-weight:600}
+.cons-cards{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.cons-card{border:1px solid var(--line);border-radius:10px;padding:9px 11px;background:#fbfcfe}
+.cons-card small{display:block;color:var(--muted);font-size:11px;margin-bottom:2px}
+.cons-card b{font-size:14px}
+.cons-foot{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:12px;flex-wrap:wrap}
+</style></head>
+<body>
+
+<header class="topbar">
+  <div class="tb-left">
+    <button class="icon-btn" title="Приложения">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
+    </button>
+    <button class="proj" id="tb-space" onclick="backToSpaces()" title="Все пространства">Пространства
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
+    </button>
+    <span class="tb-sep"></span>
+    <nav class="crumbs">
+      <span>Evolution</span><span class="sep">/</span>
+      <span>Workflow Studio</span><span class="sep">/</span>
+      <span class="cur" id="crumb-cur">Пространства</span>
+    </nav>
+  </div>
+  <div class="tb-right">
+    <span class="balance">83,34 ₽</span>
+    <button class="icon-btn" title="Баланс">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M3 7.5A2.5 2.5 0 0 1 5.5 5H18a3 3 0 0 1 3 3v9a2 2 0 0 1-2 2H6a3 3 0 0 1-3-3z"/><path d="M16 12h3"/></svg>
+    </button>
+    <button class="icon-btn" title="Документация">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>
+    </button>
+    <span class="avatar-top">PA</span>
+  </div>
+</header>
+
+<div class="shell">
+  <nav class="rail">
+    <button class="rail-btn on" id="rail-spaces" title="Пространства" onclick="backToSpaces()">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z"/><path d="M12 12l8-4.5M12 12v9M12 12L4 7.5"/></svg>
+      <span class="tip">Пространства</span>
+    </button>
+    <div class="rail-sep"></div>
+    <div class="rail-spacer"></div>
+    <button class="rail-btn" title="Настройки" onclick="openSettings()">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.7 1.7 0 0 0-1.88-.34 1.7 1.7 0 0 0-1 1.56V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.55 1.7 1.7 0 0 0-1.88.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-1.56-1H3a2 2 0 1 1 0-4h.1A1.7 1.7 0 0 0 4.6 9a1.7 1.7 0 0 0-.34-1.88l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-1.56V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.56 1.7 1.7 0 0 0 1.88-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.7 1.7 0 0 0 19.4 9v.1a1.7 1.7 0 0 0 1.56 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5.9z"/></svg>
+      <span class="tip">Настройки и Runners</span>
+    </button>
+  </nav>
+
+  <main>
+    <div id="spaces-view"></div>
+    <div id="canvas-view">
+      <div class="canvas-head">
+        <div>
+          <h1 id="space-title">—</h1>
+          <div class="sub" id="space-sub">Сервисы, данные и workflow на одном канвасе</div>
+        </div>
+        <div class="head-right">
+          <span class="head-link" onclick="toggleConsumption('services', event)">Потребление запусков ▾</span>
+          <span class="head-link" onclick="backToSpaces()">Все пространства</span>
+          <span class="head-link" onclick="openSettings()">Настройки пространства</span>
+          <span class="head-link" onclick="toast('Документация — отдельный макет, в работе')">Документация</span>
+          <button class="btn green" onclick="openAdd()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 5v14M5 12h14"/></svg>
+            Создать
+          </button>
+        </div>
+      </div>
+      <div class="canvas-wrap" id="canvas">
+        <svg class="link-layer" id="link-layer"></svg>
+      </div>
+    </div>
+    <div id="editor-view"></div>
+  </main>
+</div>
+
+<div class="drawer-bg" id="drawer-bg" onclick="closeDrawer()"></div>
+<aside class="drawer" id="drawer"></aside>
+
+<div id="create-root"></div>
+<div id="modal-root"></div>
+<div id="cons-root"></div>
+<div class="toast" id="toast"></div>
+
+<script>
+/* =========================================================
+   Модель
+   ========================================================= */
+const DAY = 864e5;
+const POS_KEY = 'ws-canvas-positions-v1';
+
+const TYPES = {
+  service:  { label: 'Сервис',             short: 'Сервис',   av: 'APP' },
+  workflow: { label: 'Workflow',           short: 'Workflow', av: 'WF'  },
+  pipeline: { label: 'Pipeline',           short: 'Pipeline', av: 'PL'  },
+  db:       { label: 'База данных',        short: 'БД',       av: 'DB'  },
+  redis:    { label: 'Redis',              short: 'Redis',    av: 'RD'  },
+  s3:       { label: 'S3',                 short: 'S3',       av: 'S3'  }
+};
+
+/* всё, что можно создать из дровера: тип выбирается первым шагом формы */
+const CREATE_TYPES = [
+  { type: 'service',  title: 'Сервис',     desc: 'Git → сборка → Container Apps', icon: 'repo',   action: 'Создать сервис' },
+  { type: 'db',       title: 'PostgreSQL', desc: 'Managed PostgreSQL',            icon: 'db',     action: 'Создать базу' },
+  { type: 'redis',    title: 'Redis',      desc: 'Managed Redis',                 icon: 'redis',  action: 'Создать Redis' },
+  { type: 's3',       title: 'S3',         desc: 'Object Storage для файлов',     icon: 's3',     action: 'Создать bucket' },
+  { type: 'workflow', title: 'Workflow',   desc: 'Сразу откроется сценарий',      icon: 'wf',     action: 'Создать workflow' },
+  { type: 'pipeline', title: 'Pipeline',   desc: 'Сценарий деплоя: шаги и ветка', icon: 'pipe',   action: 'Создать pipeline' }
+];
+
+/* ---------- тарифы cloud.ru Evolution (приложения №7.EVO, версия 260918), цены без НДС ---------- */
+const HOURS = 720;                    /* часов в месяце для прогноза */
+const RATES = {
+  container: { vcpu: 1.55, ram: 1.0303, step: 0.10,
+               artifactStore: 0.0021973, artifactEgress: 1.1475,
+               repoStore: 0.00444, repoEgress: 1.32192 },
+  postgres:  { vcpu: 1.2225, ram: 0.33, ssd: 0.0138 },
+  redis:     { vcpu: 1.1325, ram: 0.30, ssd: 0.0138 },
+  s3:        { storage: 0.93, read: 0.027, write: 0.09, egress: 0.96 },
+  workflow:  { step: 0.10 }
+};
+
+/* Container Apps: legacy-пресеты — читаются только у сущностей, сохранённых до перехода на vCPU/RAM */
+const CONFIGS = [
+  { id: 'start',    name: 'Стартовая',        desc: 'Прототипы и небольшие нагрузки', vcpu: 0.1,  ram: 0.25, tag: '' },
+  { id: 'standard', name: 'Стандартная',      desc: 'Баланс цены и мощности',          vcpu: 0.25, ram: 0.5,  tag: 'Рекомендуем' },
+  { id: 'pro',      name: 'Производительная', desc: 'Высокие нагрузки',                vcpu: 0.5,  ram: 1,    tag: '' }
+];
+/* пулы раннеров, на которых исполняются сценарии */
+const RUNNERS = [
+  { id: 'shared', name: 'Общие раннеры Cloud.ru', detail: '1 vCPU · 1 ГБ · автоскейл' },
+  { id: 'pool-1', name: 'worker-pool-1',          detail: '2 vCPU · 4 ГБ · 2 агента' },
+  { id: 'pool-2', name: 'worker-pool-2',          detail: '4 vCPU · 8 ГБ · 4 агента' }
+];
+const DEFAULT_RUNNER = 'pool-2';
+
+/* Container Apps: готовые конфигурации для выпадающего списка (как в каталоге cloud.ru) */
+const CONTAINER_PRESETS = [
+  { id: 'c-01-256',  vcpu: 0.1,  ramMb: 256 },
+  { id: 'c-025-512', vcpu: 0.25, ramMb: 512 },
+  { id: 'c-05-512',  vcpu: 0.5,  ramMb: 512 },
+  { id: 'c-05-1024', vcpu: 0.5,  ramMb: 1024 },
+  { id: 'c-1-1024',  vcpu: 1,    ramMb: 1024 },
+  { id: 'c-1-2048',  vcpu: 1,    ramMb: 2048 },
+  { id: 'c-2-4096',  vcpu: 2,    ramMb: 4096 },
+  { id: 'c-4-8192',  vcpu: 4,    ramMb: 8192 }
+];
+
+/* Managed PostgreSQL: vCPU, ГБ RAM, ГБ SSD */
+const DB_CONFIGS = [
+  { id: 'db-s', name: 'Минимальная', desc: 'Дев и тесты',      vcpu: 2, ram: 4,  ssd: 20,  tag: '' },
+  { id: 'db-m', name: 'Стандартная', desc: 'Рабочая нагрузка', vcpu: 4, ram: 8,  ssd: 50,  tag: 'Рекомендуем' },
+  { id: 'db-l', name: 'Продуктовая', desc: 'Высокая нагрузка', vcpu: 8, ram: 16, ssd: 100, tag: '' }
+];
+/* Managed Redis: vCPU, ГБ RAM, ГБ SSD */
+const REDIS_CONFIGS = [
+  { id: 'rd-s', name: 'Минимальная', desc: 'Кэш для дев-среды', vcpu: 1, ram: 1, ssd: 10, tag: '' },
+  { id: 'rd-m', name: 'Стандартная', desc: 'Кэш продукта',      vcpu: 2, ram: 2, ssd: 20, tag: 'Рекомендуем' },
+  { id: 'rd-l', name: 'Продуктовая', desc: 'Высокая нагрузка',  vcpu: 4, ram: 4, ssd: 50, tag: '' }
+];
+const S3_STEPS = {
+  storage: [10, 100, 1000, 5000],
+  read:    [100, 1000, 10000, 100000],
+  write:   [10, 100, 1000, 10000],
+  egress:  [10, 100, 1000, 10000]
+};
+const WF_RUNS = [100, 1000, 10000, 100000];
+
+function fmt(n) { return n.toFixed(2).replace('.', ',') + ' ₽'; }
+function rate(n) { return n.toFixed(6).replace(/0+$/, '').replace(/\.$/, '').replace('.', ',') + ' ₽'; }
+function num(n) { return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ' '); }
+function pickById(list, id) { return list.filter(function (x) { return x.id === id; })[0] || list[1]; }
+function configById(id) { return pickById(CONFIGS, id); }
+function ramLabel(gb) { return gb < 1 ? Math.round(gb * 1024) + ' МБ' : gb + ' ГБ'; }
+
+/* Сервис хранит контейнерный конфиг напрямую: vCPU и RAM в МБ (как в Container Apps).
+   У ранее сохранённых сущностей есть только config id — читаем из него. */
+function servVcpu(e) {
+  if (e && typeof e.vcpu === 'number') return e.vcpu;
+  return configById((e && e.config) || 'standard').vcpu;
+}
+function servRamMb(e) {
+  if (e && typeof e.ramMb === 'number') return e.ramMb;
+  return Math.round(configById((e && e.config) || 'standard').ram * 1024);
+}
+function servPerReplica(e) {
+  return servVcpu(e) * RATES.container.vcpu * HOURS + (servRamMb(e) / 1024) * RATES.container.ram * HOURS;
+}
+function cpuText(v) { return String(Math.round(v * 100) / 100).replace('.', ','); }
+function ramText(mb) {
+  const v = Math.round(mb);
+  return v >= 1024 ? (v / 1024).toFixed(v % 1024 ? 1 : 0).replace('.', ',') + ' ГБ' : v + ' МБ';
+}
+function containerCost(c) { return c.vcpu * RATES.container.vcpu * HOURS + c.ram * RATES.container.ram * HOURS; }
+function dbCost(cfg, disk) {
+  const cpu = cfg.vcpu * RATES.postgres.vcpu * HOURS;
+  const ram = cfg.ram * RATES.postgres.ram * HOURS;
+  const ssd = disk * RATES.postgres.ssd * HOURS;
+  return { cpu: cpu, ram: ram, ssd: ssd, total: cpu + ram + ssd };
+}
+function redisCost(cfg, disk) {
+  const cpu = cfg.vcpu * RATES.redis.vcpu * HOURS;
+  const ram = cfg.ram * RATES.redis.ram * HOURS;
+  const ssd = disk * RATES.redis.ssd * HOURS;
+  return { cpu: cpu, ram: ram, ssd: ssd, total: cpu + ram + ssd };
+}
+function s3Cost(o) {
+  const storage = o.storage * RATES.s3.storage;
+  const read = (o.read / 1000) * RATES.s3.read;
+  const write = (o.write / 1000) * RATES.s3.write;
+  const egress = o.egress * RATES.s3.egress;
+  return { storage: storage, read: read, write: write, egress: egress, total: storage + read + write + egress };
+}
+function wfCost(steps, runs) {
+  const stepCost = RATES.workflow.step;
+  return { stepCost: stepCost, runs: runs, steps: steps, total: steps * runs * stepCost };
+}
+/* Pipeline: разовый запуск сценария — по шагу деплоя (0,10 ₽) */
+function pipelineCost(steps) {
+  const n = typeof steps === 'number' && steps > 0 ? steps : 3;
+  return n * RATES.container.step;
+}
+const DEPLOY_COST = RATES.container.step;
+const ARTIFACT_COST = RATES.container.artifactStore * HOURS + RATES.container.artifactEgress;
+const REPO_COST = RATES.container.repoStore * HOURS + RATES.container.repoEgress;
+function totalFor(id) { return DEPLOY_COST + ARTIFACT_COST + REPO_COST + containerCost(configById(id)); }
+
+/* v2: сущности сервиса хранят контейнерный конфиг и признак первого деплоя */
+const SPACES_KEY = 'ws-spaces-v2';
+
+const st = {
+  spaces: [],
+  currentSpaceId: null,
+  view: 'spaces',
+  editorId: null,
+  editorTab: 'scenario',
+  selected: null,
+  tab: 'overview',
+  draftConfig: 'standard',
+  draftSource: 'Repo',
+  /* состояние формы создания: живёт только в дровере, пока не нажали «Создать» */
+  creating: false,
+  createType: null,
+  draftName: '',
+  draftDesc: '',
+  draftRunner: 'pool-2',
+  draftRepoSource: 'Repo',
+  draftRepo: '',
+  draftBranch: 'main',
+  draftPort: 8080,
+  draftVcpu: 0.1,
+  draftRamMb: 256,
+  /* незавершённые правки настроек уже созданной сущности */
+  draftReplicas: 1,
+  /* черновик таблицы переменных: сохраняется только по общей кнопке */
+  draftVars: null,
+  /* открытый поповер потребления запусков: pipeline | workflow | services */
+  consKind: null,
+  modal: null,
+  positions: {},
+  positionsLoaded: false
+};
+
+/* Сущности канваса всегда принадлежат текущему пространству. */
+Object.defineProperty(st, 'entities', {
+  get: function () { const s = spaceById(st.currentSpaceId); return s ? s.entities : []; },
+  set: function (v) { const s = spaceById(st.currentSpaceId); if (s) s.entities = v; },
+  configurable: true
+});
+
+function spaceById(id) { return st.spaces.filter(function (s) { return s.id === id; })[0] || null; }
+function currentSpace() { return spaceById(st.currentSpaceId); }
+function typeIcon(t) {
+  return t === 'workflow' ? I.wf : t === 'pipeline' ? I.pipe : t === 'db' ? I.db
+    : t === 'redis' ? I.redis : t === 's3' ? I.s3 : I.app;
+}
+
+/* =========================================================
+   Утилиты
+   ========================================================= */
+const ENT = { '&': '\u0026amp;', '<': '\u0026lt;', '>': '\u0026gt;', '"': '\u0026quot;', "'": '\u0026#39;' };
+function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return ENT[c]; }); }
+function $(id) { return document.getElementById(id); }
+function uid(p) { return (p || 'e') + Date.now().toString(36) + Math.floor(Math.random() * 1000); }
+
+function plural(n, one, few, many) {
+  const a = n % 10, b = n % 100;
+  if (a === 1 && b !== 11) return one;
+  if (a >= 2 && a <= 4 && (b < 10 || b >= 20)) return few;
+  return many;
+}
+function relTime(d) {
+  const s = Math.max(0, Math.floor((Date.now() - d.getTime()) / 1000));
+  if (s < 60) return 'только что';
+  const m = Math.floor(s / 60); if (m < 60) return m + ' ' + plural(m, 'минуту', 'минуты', 'минут') + ' назад';
+  const h = Math.floor(m / 60); if (h < 24) return h + ' ' + plural(h, 'час', 'часа', 'часов') + ' назад';
+  const dd = Math.floor(h / 24); if (dd < 30) return dd + ' ' + plural(dd, 'день', 'дня', 'дней') + ' назад';
+  const mm = Math.floor(dd / 30); if (mm < 12) return mm + ' ' + plural(mm, 'месяц', 'месяца', 'месяцев') + ' назад';
+  const yy = Math.floor(mm / 12);
+  return yy + ' ' + plural(yy, 'год', 'года', 'лет') + ' назад';
+}
+function absTime(d) {
+  const p = n => String(n).padStart(2, '0');
+  return p(d.getDate()) + '.' + p(d.getMonth() + 1) + '.' + d.getFullYear() + ' ' + p(d.getHours()) + ':' + p(d.getMinutes());
+}
+function slug(s) { return String(s || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'app'; }
+function initials(name) { return esc(String(name).slice(0, 2).toUpperCase()); }
+function byId(id) { return st.entities.filter(e => e.id === id)[0] || null; }
+function domainOf(e) { return e.domain || ('https://' + slug(e.name) + '-' + (e.type === 'db' ? 'db' : 'app') + '.containerapps.ru'); }
+
+let toastTimer = null;
+function toast(t) {
+  const el = $('toast'); el.textContent = t; el.classList.add('show');
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => el.classList.remove('show'), 2600);
+}
+
+/* =========================================================
+   Иконки
+   ========================================================= */
+const I = {
+  app: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M7 6.5h.01M10 6.5h.01"/></svg>',
+  wf: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="5" cy="6" r="2.2"/><circle cx="19" cy="6" r="2.2"/><circle cx="12" cy="18" r="2.2"/><path d="M7 6h10M6.5 8l4 8M17.5 8l-4 8"/></svg>',
+  db: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><ellipse cx="12" cy="6" rx="8" ry="3"/><path d="M4 6v6c0 1.7 3.6 3 8 3s8-1.3 8-3V6"/><path d="M4 12v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6"/></svg>',
+  redis: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 7l8-4 8 4-8 4z"/><path d="M4 12l8 4 8-4"/><path d="M4 17l8 4 8-4"/></svg>',
+  s3: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 7l8-4 8 4v10l-8 4-8-4z"/><path d="M4 7l8 4 8-4M12 11v10"/></svg>',
+  repo: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v18H6.5A2.5 2.5 0 0 1 4 18.5z"/><path d="M4 17.5h16"/></svg>',
+  plus: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 5v14M5 12h14"/></svg>',
+  clock: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>',
+  globe: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.4 3.8 5.4 3.8 9S14.5 18.6 12 21c-2.5-2.4-3.8-5.4-3.8-9S9.5 5.4 12 3z"/></svg>',
+  plug: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M9 3v5M15 3v5"/><path d="M6 8h12v3a6 6 0 0 1-12 0z"/><path d="M12 17v4"/></svg>',
+  branch: '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="6" cy="6" r="2.5"/><circle cx="6" cy="18" r="2.5"/><circle cx="18" cy="6" r="2.5"/><path d="M6 8.5v7M18 8.5c0 4-4 4-6 4.5"/></svg>',
+  scenario: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/></svg>',
+  cloud: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M7 18h10a4 4 0 0 0 .6-8A6 6 0 0 0 6.1 11 3.5 3.5 0 0 0 7 18z"/></svg>',
+  key: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="8" cy="8" r="4"/><path d="M11 11l9 9M17 17l2-2M14.5 14.5l2-2"/></svg>',
+  refresh: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M20 11a8 8 0 1 0-2.2 5.6"/><path d="M20 4v7h-7"/></svg>',
+  info: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="9"/><path d="M12 11v5"/><circle cx="12" cy="8" r=".8" fill="currentColor" stroke="none"/></svg>',
+  check: '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M4 12.5l5 5L20 6.5"/></svg>',
+  gear: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="3"/><path d="M4 12h3M17 12h3M12 4v3M12 17v3"/></svg>',
+  pipe: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="4.5" cy="12" r="2.2"/><circle cx="12" cy="12" r="2.2"/><circle cx="19.5" cy="12" r="2.2"/><path d="M6.7 12h3.1M14.2 12h3.1"/></svg>',
+  play: '<svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5l11 7-11 7z"/></svg>'
+};
+
+/* =========================================================
+   Отрисовка
+   ========================================================= */
+function render() {
+  if (st.view !== 'canvas' && st.selected && st.selected !== 'settings') closeDrawer(true);
+  updateChrome();
+  $('spaces-view').innerHTML = st.view === 'spaces' ? spacesHtml() : '';
+  $('editor-view').innerHTML = st.view === 'editor' ? editorHtml() : '';
+  if (st.view === 'canvas') renderCanvas();
+  renderDrawer();
+  renderCreate();
+  renderConsumption();
+  toggleViews();
+}
+
+/* слой модалки создания поверх канваса */
+function renderCreate() {
+  const root = $('create-root');
+  if (!root) return;
+  if (!st.creating) { root.innerHTML = ''; return; }
+  root.innerHTML = createModalHtml();
+}
+
+function toggleViews() {
+  $('spaces-view').style.display = st.view === 'spaces' ? 'flex' : 'none';
+  $('canvas-view').style.display = st.view === 'canvas' ? 'flex' : 'none';
+  $('editor-view').style.display = st.view === 'editor' ? 'block' : 'none';
+}
+
+function updateChrome() {
+  const sp = currentSpace();
+  const ed = st.view === 'editor' ? byId(st.editorId) : null;
+  const name = st.view === 'spaces' ? 'Пространства' : st.view === 'editor' ? (ed ? ed.name : 'Сценарий') : (sp ? sp.name : 'Пространства');
+  const proj = $('tb-space');
+  if (proj && proj.childNodes.length) proj.childNodes[0].nodeValue = name + ' ';
+  const crumb = $('crumb-cur');
+  if (crumb) crumb.textContent = name;
+  const title = $('space-title');
+  if (title) title.textContent = sp ? sp.name : '—';
+  const rs = $('rail-spaces');
+  if (rs) rs.classList.toggle('on', true);
+}
+
+function spacesHtml() {
+  const head = '<div class="spaces-head">' +
+    '<div><h1>Пространства</h1><div class="sub">Выберите пространство или создайте новое</div></div>' +
+    '<div class="head-right"><span class="head-link" onclick="openSettings()">Настройки</span>' +
+      '<button class="btn green" onclick="createSpace()">' + I.plus + ' Новое пространство</button></div>' +
+    '</div>';
+  if (!st.spaces.length) {
+    return head + '<div class="spaces-empty">' +
+      '<button class="big-plus" onclick="createSpace()" title="Новое пространство"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg></button>' +
+      '<h3>Создайте первое пространство</h3>' +
+      '<p>Пространство объединяет приложения, workflows, базы данных и другие ресурсы на одном канвасе.</p>' +
+      '<a class="link-primary" href="#" onclick="seedDemoSpace();return false">Показать пример пространства</a>' +
+      '</div>';
+  }
+  return head + '<div class="spaces-grid">' + st.spaces.map(function (sp) {
+    const c = { service: 0, workflow: 0, db: 0, other: 0 };
+    sp.entities.forEach(function (e) {
+      if (e.type === 'service') c.service++;
+      else if (e.type === 'workflow') c.workflow++;
+      else if (e.type === 'db') c.db++;
+      else c.other++;
+    });
+    return '<div class="space-card" tabindex="0" role="button" onclick="openSpace(\'' + esc(sp.id) + '\')" ' +
+      'onkeydown="if(event.key===\'Enter\'||event.key===\' \'){event.preventDefault();openSpace(\'' + esc(sp.id) + '\');}">' +
+      '<div class="sc-top"><span class="sc-ico">' + I.cloud + '</span>' +
+        '<div style="min-width:0"><div class="sc-name" title="' + esc(sp.name) + '">' + esc(sp.name) + '</div>' +
+        '<div class="sc-meta">' + relTime(sp.created) + '</div></div></div>' +
+      '<div class="sc-foot"><span class="type-chip">Сервисы: ' + c.service + '</span>' +
+        '<span class="type-chip">Workflow: ' + c.workflow + '</span>' +
+        '<span class="type-chip">БД: ' + c.db + '</span>' +
+        '<span class="type-chip">Прочее: ' + c.other + '</span>' +
+        '<button class="sc-settings" title="Настройки пространства" onclick="event.stopPropagation();openProjectSettings(\'' + esc(sp.id) + '\')">' + I.gear + '</button></div>' +
+      '</div>';
+  }).join('') + '</div>';
+}
+
+const WF_NODES = [
+  { id: 'hook', title: 'Webhook', sub: 'POST /support/ticket', icon: 'wf', x: 30, y: 160 },
+  { id: 'agent', title: 'AI Agent', sub: 'Классификация обращения', icon: 'scenario', x: 300, y: 160 },
+  { id: 'http', title: 'HTTP Request', sub: 'POST /tickets/assign', icon: 'cloud', x: 570, y: 160 },
+  { id: 'pg', title: 'Postgres', sub: 'INSERT INTO events', icon: 'db', x: 840, y: 160 }
+];
+
+function wfLinks() {
+  let out = '';
+  for (let i = 0; i < WF_NODES.length - 1; i++) {
+    const a = WF_NODES[i], b = WF_NODES[i + 1];
+    const ax = a.x + 216, ay = a.y + 42, bx = b.x, by = b.y + 42;
+    const cx = (ax + bx) / 2;
+    out += '<path d="M' + ax + ',' + ay + ' C' + cx + ',' + ay + ' ' + cx + ',' + by + ' ' + bx + ',' + by + '" fill="none" stroke="#12a05c" stroke-width="2" opacity="0.75"/>';
+  }
+  return out;
+}
+
+function wfNode(n) {
+  return '<div class="wf-node" style="left:' + n.x + 'px;top:' + n.y + 'px" tabindex="0" role="button" ' +
+      'onclick="toast(\'Узел «' + esc(n.title) + '» — настройки в реальном редакторе\')" ' +
+      'onkeydown="if(event.key===\'Enter\'){event.preventDefault();this.click();}">' +
+      '<span class="wn-dot in"></span><span class="wn-dot out"></span>' +
+      '<div class="wn-head"><span class="wn-ico">' + I[n.icon] + '</span><div class="wn-title">' + esc(n.title) + '</div></div>' +
+      '<div class="wn-sub">' + esc(n.sub) + '</div>' +
+    '</div>';
+}
+
+/* Мини-схема шагов для дровера: только иконки, соединённые ровными линиями. */
+function wfMini() {
+  const parts = [];
+  WF_NODES.forEach(function (n, i) {
+    if (i) parts.push('<span class="wm-line"></span>');
+    parts.push('<span class="wm-ico" title="' + esc(n.title) + '">' + I[n.icon] + '</span>');
+  });
+  return '<div class="wf-mini">' + parts.join('') + '</div>';
+}
+
+/* ---------- данные сценария: запуски, триггеры, переменные ---------- */
+function wfRunsOf(e) {
+  if (!Array.isArray(e.runs)) {
+    const now = Date.now();
+    e.runs = [
+      { id: 'run-9f2', at: now - 12 * 60000, status: 'ok', dur: '2,4 с', trigger: 'Webhook' },
+      { id: 'run-9f1', at: now - 3 * 3600e3, status: 'ok', dur: '2,1 с', trigger: 'Расписание' },
+      { id: 'run-9e8', at: now - 26 * 3600e3, status: 'err', dur: '0,8 с', trigger: 'Webhook' }
+    ];
+  }
+  return e.runs;
+}
+function wfTriggersOf() {
+  return [
+    { title: 'Webhook', detail: 'POST /hooks/{workflow-id}', on: true },
+    { title: 'Расписание', detail: 'каждые 15 минут', on: true },
+    { title: 'Вручную', detail: 'кнопка «Запустить» в шапке', on: true }
+  ];
+}
+function wfVarsOf() {
+  return [
+    { name: 'API_URL', value: 'https://api.cloud.ru/v1', kind: 'Открытая' },
+    { name: 'SERVICE_TOKEN', value: '••••••••••••', kind: 'Секрет' },
+    { name: 'RETRY_LIMIT', value: '3', kind: 'Открытая' }
+  ];
+}
+
+function editorHtml() {
+  const e = byId(st.editorId);
+  if (!e) return '';
+  const nav = [['scenario', 'Сценарий'], ['variables', 'Переменные'], ['runs', 'История запусков'], ['triggers', 'Триггеры']];
+  return '<div class="wf-shell">' +
+      '<div class="wf-subnav">' +
+        '<button class="wf-back" onclick="backToCanvas()">← Назад к Сценариям</button>' +
+        nav.map(function (n) {
+          return '<button class="wf-nav-item ' + (st.editorTab === n[0] ? 'on' : '') + '" onclick="setEditorTab(\'' + n[0] + '\')">' + n[1] + '</button>';
+        }).join('') +
+      '</div>' +
+      '<div class="wf-main">' +
+        '<div class="wf-head">' +
+          '<div style="min-width:0">' +
+            '<div class="wf-title"><h1>' + esc(e.name) + '</h1>' +
+              '<button class="icon-btn" title="Настройки workflow" onclick="openWorkflowSettings(\'' + esc(e.id) + '\')">' + I.gear + '</button></div>' +
+            '<div class="wf-meta"><span class="wf-chip">' + (e.type === 'pipeline' ? 'Pipelines' : 'Workflows') + '</span>' +
+              '<span>Обновлено: ' + relTime(new Date(e.updated || e.created)) + '</span>' +
+              '<span>· ' + e.steps + ' ' + plural(e.steps, 'шаг', 'шага', 'шагов') + '</span></div>' +
+          '</div>' +
+          '<div class="wf-actions">' +
+            '<span class="wf-link" onclick="toggleConsumption(\'' + (e.type === 'pipeline' ? 'pipeline' : 'workflow') + '\', event)">Потребление запусков ▾</span>' +
+            '<span class="wf-link" onclick="toast(\'Документация — отдельный макет, в работе\')">Документация</span>' +
+            '<button class="btn green" onclick="runWorkflow(\'' + esc(e.id) + '\')">Запустить ' + I.play + '</button>' +
+          '</div>' +
+        '</div>' +
+        editorBody(e) +
+      '</div>' +
+    '</div>';
+}
+
+function editorBody(e) {
+  if (st.editorTab === 'variables') {
+    return '<div class="wf-panel"><h4>Переменные</h4>' + wfVarsOf().map(function (v) {
+      return '<div class="wf-var"><span class="name">' + esc(v.name) + '</span><span class="val">' + esc(v.value) + '</span>' +
+        '<span class="hint-chip">' + esc(v.kind) + '</span></div>';
+    }).join('') + '</div>';
+  }
+  if (st.editorTab === 'runs') {
+    return '<div class="wf-panel"><h4>История запусков</h4>' +
+      '<table class="hist"><thead><tr><th>Run</th><th>Статус</th><th>Триггер</th><th>Дата</th><th>Длительность</th></tr></thead><tbody>' +
+      wfRunsOf(e).map(function (r) {
+        return '<tr><td class="mono">' + esc(r.id) + '</td><td>' + statusBadge(r.status) + '</td><td>' + esc(r.trigger) + '</td>' +
+          '<td>' + esc(absTime(new Date(r.at))) + '</td><td>' + esc(r.dur) + '</td></tr>';
+      }).join('') +
+      '</tbody></table></div>';
+  }
+  if (st.editorTab === 'triggers') {
+    return '<div class="wf-panel"><h4>Триггеры</h4>' + wfTriggersOf().map(function (t) {
+      return '<div class="wf-trig"><div><b>' + esc(t.title) + '</b><small>' + esc(t.detail) + '</small></div>' + statusBadge(t.on ? 'ok' : 'err') + '</div>';
+    }).join('') + '<div class="hint-text">Workflow запускается по вебхуку, расписанию или вручную.</div></div>';
+  }
+  return '<div class="wf-canvas"><div class="wf-inner">' +
+      '<svg class="wf-links" viewBox="0 0 1100 420" preserveAspectRatio="none">' + wfLinks() + '</svg>' +
+      WF_NODES.map(wfNode).join('') +
+      '<div class="wf-note">Сценарий: триггер → агент → действие. Узлы кликабельны.</div>' +
+    '</div>' +
+    '<div class="wf-zoom">' +
+      '<button title="Приблизить" onclick="toast(\'Зум — вне макета\')">+</button>' +
+      '<button title="Отдалить" onclick="toast(\'Зум — вне макета\')">−</button>' +
+      '<button title="Вписать сценарий" onclick="toast(\'Вписать сценарий — вне макета\')">⤢</button>' +
+    '</div></div>';
+}
+
+/* =========================================================
+   Поповер «Потребление запусков»: Pipelines / Workflows / Services
+   ========================================================= */
+const CONS_LIMIT = 50;
+const CONS_USED = 6;
+const CONS_RESET = '1 декабря 2026';
+
+function consProgress() {
+  const pct = Math.round(CONS_USED / CONS_LIMIT * 100);
+  return '<div class="cons-usage"><span>Использовано <b>' + CONS_USED + '</b> из ' + CONS_LIMIT + ' шагов</span><span>' + pct + '%</span></div>' +
+    '<div class="cons-bar"><span style="width:' + pct + '%"></span></div>';
+}
+
+function consRemaining() {
+  const left = CONS_LIMIT - CONS_USED;
+  return '<div class="cons-line"><span>Осталось ' + left + ' ' + plural(left, 'шаг', 'шага', 'шагов') + '</span>' +
+    '<span class="date">Обновится ' + CONS_RESET + '</span></div>';
+}
+
+function consFreeBlock() {
+  const pct = Math.round(CONS_USED / CONS_LIMIT * 100);
+  return '<div class="cons-free-label">Бесплатные шаги</div>' +
+    '<div class="cons-usage"><span>Доступно по тарифу</span><span>' + CONS_LIMIT + ' шагов</span></div>' +
+    '<div class="cons-bar thin"><span style="width:' + pct + '%"></span></div>' +
+    '<div class="cons-line"><span>Использовано ' + CONS_USED + ' из ' + CONS_LIMIT + '</span>' +
+      '<span class="date">Обновится ' + CONS_RESET + '</span></div>';
+}
+
+function consWarn() {
+  return '<div class="cons-warn">' + I.info + '<span>Сверх лимита — 0,10 ₽ / шаг</span></div>';
+}
+
+function consRunner() {
+  const r = RUNNERS.filter(function (x) { return x.id === DEFAULT_RUNNER; })[0] || RUNNERS[0];
+  return '<div class="cons-div"></div>' +
+    '<div class="cons-runner-head"><div><div class="cons-free-label" style="margin:0 0 3px">Runner</div>' +
+      '<div class="cons-runner-name">' + esc(r.name) + '</div></div>' +
+      '<span class="hint-chip">Container Jobs</span></div>' +
+    '<div class="cons-cards">' +
+      '<div class="cons-card"><small>vCPU</small><b>4</b></div>' +
+      '<div class="cons-card"><small>RAM</small><b>8 ГБ</b></div>' +
+    '</div>' +
+    '<div class="cons-foot">' +
+      '<a class="link-primary" href="#" onclick="toast(\'Тарификация Runner — отдельная страница тарифов\');return false">Тарификация</a>' +
+      '<button class="btn white sm" onclick="toast(\'Создание Runner — отдельный экран\')">Создать Runner</button>' +
+    '</div>';
+}
+
+function consumptionPopover(kind) {
+  let note = '', runner = '';
+  if (kind === 'workflow') {
+    note = '<div class="cons-note">Общий лимит шагов для всех сценариев.</div>';
+  } else if (kind === 'services') {
+    note = '<div class="cons-note">Один деплой сервиса состоит из нескольких шагов сборки и запуска. ' +
+      'Лимит общий для Services, Pipelines и Workflows.</div>';
+  } else {
+    /* Pipelines: секция RUNNER и кнопка создания раннера остаются */
+    runner = consRunner();
+  }
+  return '<div class="cons-pop" onclick="event.stopPropagation()">' +
+      '<div class="cons-head"><span class="cons-title">Потребление запусков</span>' +
+        '<button class="modal-close" style="width:28px;height:28px;font-size:16px" onclick="closeConsumption()" title="Закрыть">×</button></div>' +
+      '<div class="cons-body">' +
+        consProgress() + consRemaining() + consFreeBlock() + note + consWarn() + runner +
+      '</div>' +
+    '</div>';
+}
+
+function renderConsumption() {
+  const root = $('cons-root');
+  if (!root) return;
+  if (!st.consKind) { root.innerHTML = ''; return; }
+  root.innerHTML = '<div class="cons-backdrop" onclick="closeConsumption()"></div>' + consumptionPopover(st.consKind);
+}
+
+function toggleConsumption(kind, ev) {
+  if (ev) ev.stopPropagation();
+  st.consKind = st.consKind === kind ? null : kind;
+  renderConsumption();
+}
+function closeConsumption() { st.consKind = null; renderConsumption(); }
+
+/* запуск сценария из шапки: добавляет прогон в историю */
+function runWorkflow(id) {
+  const e = byId(id); if (!e) return;
+  const runs = wfRunsOf(e).slice();
+  runs.unshift({ id: 'run-' + Math.random().toString(16).slice(2, 5), at: Date.now(), status: 'ok', dur: '2,2 с', trigger: 'Вручную' });
+  e.runs = runs.slice(0, 6);
+  e.updated = new Date();
+  saveSpaces();
+  render();
+  toast('Сценарий запущен — новый прогон в «Истории запусков»');
+}
+
+/* шестерёнка на странице сценария открывает общую информацию о нём в дровере */
+function openWorkflowSettings(id) {
+  st.editorId = null;
+  st.view = 'canvas';
+  st.creating = false;
+  st.selected = id;
+  st.tab = 'settings';
+  syncDrafts(byId(id));
+  render();
+  openDrawerEl();
+}
+
+function openSpace(id) {
+  const sp = spaceById(id);
+  if (!sp) return;
+  closeDrawer(true);
+  st.currentSpaceId = id;
+  st.view = 'canvas';
+  st.tab = 'overview';
+  render();
+}
+
+function backToSpaces() {
+  closeDrawer(true);
+  st.view = 'spaces';
+  st.editorId = null;
+  render();
+}
+
+function backToCanvas() {
+  st.view = 'canvas';
+  st.editorId = null;
+  st.editorTab = 'scenario';
+  render();
+}
+
+function openEditor(id, tab) {
+  st.editorId = id;
+  st.editorTab = tab || 'scenario';
+  st.view = 'editor';
+  closeDrawer(true);
+  render();
+}
+
+function setEditorTab(t) { st.editorTab = t; render(); }
+
+function createSpace() {
+  const sp = { id: uid('s'), name: 'Пространство ' + (st.spaces.length + 1), created: new Date(), entities: [] };
+  st.spaces.push(sp);
+  saveSpaces();
+  openSpace(sp.id);
+  toast('Пространство создан — добавьте первый объект');
+}
+
+
+function statusBadge(s) {
+  if (s === 'ok') return '<span class="badge ok"><i class="dot"></i>Готово</span>';
+  if (s === 'err') return '<span class="badge err"><i class="dot"></i>Ошибка</span>';
+  if (s === 'deploying') return '<span class="badge warn"><i class="dot"></i>Развёртывается</span>';
+  if (s === 'running') return '<span class="badge warn"><i class="dot"></i>Выполняется</span>';
+  if (s === 'queued') return '<span class="badge draft"><i class="dot"></i>В очереди</span>';
+  if (s === 'cancelled') return '<span class="badge draft"><i class="dot"></i>Остановлен</span>';
+  return '<span class="badge draft"><i class="dot"></i>Не задеплоен</span>';
+}
+
+/* до первого деплоя у сервиса нет ни логов, ни истории деплоев, ни домена */
+/* workflow и pipeline — сценарии: их подробные настройки живут не в дровере */
+function isScenarioType(e) {
+  return !!e && (e.type === 'workflow' || e.type === 'pipeline');
+}
+
+function isDeployed(e) {
+  if (!e) return false;
+  if (e.deployed === true) return true;
+  if (e.deployed === false) return false;
+  return e.status === 'ok' || e.status === 'err' || e.status === 'deploying';
+}
+
+function avColor(e) {
+  if (e.type === 'db') return 'background:#d9efe2;color:#1f6b45';
+  if (e.type === 'redis') return 'background:#fde3e3;color:#a33b3b';
+  if (e.type === 's3') return 'background:#e5e9fb;color:#3e4a8f';
+  if (e.type === 'workflow') return 'background:#f6e3f7;color:#7a3b82';
+  if (e.type === 'pipeline') return 'background:#e3f0fb;color:#2f5f8f';
+  return 'background:#e8eef7;color:#3d5875';
+}
+
+function cardHtml(e) {
+  const t = TYPES[e.type];
+  const sub = e.type === 'service'
+    ? (e.repo || 'Репозиторий не выбран')
+    : e.type === 'db' ? 'PostgreSQL · managed'
+      : e.type === 'redis' ? 'Redis · managed'
+        : e.type === 's3' ? 'Object Storage'
+          : e.type === 'pipeline' ? ('Pipeline · ' + (e.branch || 'main') + ' · ' + e.steps + ' ' + plural(e.steps, 'шаг', 'шага', 'шагов'))
+            : 'Workflow · low-code';
+  return '<div class="card' + (st.selected === e.id ? ' sel' : '') + '" data-id="' + esc(e.id) + '" tabindex="0" role="button" ' +
+    'onkeydown="if(event.key===\'Enter\'||event.key===\' \'){event.preventDefault();openEntity(\'' + esc(e.id) + '\');}" ' +
+    'style="left:' + e.x + 'px;top:' + e.y + 'px">' +
+    '<div class="card-head">' +
+      '<span class="av" style="' + avColor(e) + '">' + esc(t.av) + '</span>' +
+      '<div class="card-titles">' +
+        '<div class="card-title" title="' + esc(e.name) + '">' + esc(e.name) + '</div>' +
+        '<div class="card-sub">' + typeIcon(e.type) + '<span title="' + esc(sub) + '">' + esc(sub) + '</span></div>' +
+      '</div>' +
+    '</div>' +
+    '<div class="card-foot">' +
+      statusBadge(e.status) +
+      (e.type === 'service' ? replChip(e) : '') +
+      (e.type === 'service' ? '' : '<span class="ago">' + relTime(e.created) + '</span>') +
+      '<span class="type-chip"><span>' + esc(t.short) + '</span></span>' +
+    '</div>' +
+  '</div>';
+}
+
+/* количество реплик на карточке только отображается: менять его нужно в дровере */
+function replChip(e) {
+  const n = repCount(e);
+  return '<span class="type-chip" title="Реплик: ' + n + '">Реплики: ' + n + '</span>';
+}
+
+function renderCanvas() {
+  const cv = $('canvas');
+  if (!cv) return;
+  if (!st.entities.length) {
+    cv.innerHTML = '<svg class="link-layer" id="link-layer"></svg>' +
+      '<div class="canvas-empty">' +
+        '<button class="big-plus" onclick="openAdd()" title="Создать">' +
+          '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>' +
+        '</button>' +
+        '<h3>Создайте первый объект</h3>' +
+        '<p>Сервис из репозитория, PostgreSQL, Redis, S3, workflow или pipeline — всё создаётся в дровере справа.</p>' +
+        '<a class="link-primary" href="#" onclick="seedDemo();return false">Показать пример пространства</a>' +
+      '</div>';
+    return;
+  }
+  cv.innerHTML = '<svg class="link-layer" id="link-layer"></svg>' + st.entities.map(cardHtml).join('');
+  bindDrag();
+  requestAnimationFrame(drawLinks);
+}
+
+function defaultPos(i) { return { x: 24 + (i % 3) * 300, y: 24 + Math.floor(i / 3) * 150 }; }
+
+function loadPositions() {
+  try {
+    const raw = localStorage.getItem(POS_KEY);
+    if (raw) st.positions = JSON.parse(raw) || {};
+  } catch (e) { st.positions = {}; }
+  st.positionsLoaded = true;
+}
+function savePositions() {
+  try { localStorage.setItem(POS_KEY, JSON.stringify(st.positions)); } catch (e) { }
+}
+
+function loadSpaces() {
+  try {
+    const raw = localStorage.getItem(SPACES_KEY);
+    if (!raw) return;
+    const arr = JSON.parse(raw);
+    if (!Array.isArray(arr)) return;
+    st.spaces = arr.map(function (sp) {
+      return {
+        id: sp.id, name: sp.name, created: new Date(sp.created),
+        entities: (sp.entities || []).map(function (e) { e.created = new Date(e.created); return e; })
+      };
+    });
+  } catch (e) { st.spaces = []; }
+}
+function saveSpaces() {
+  try { localStorage.setItem(SPACES_KEY, JSON.stringify(st.spaces)); } catch (e) { }
+}
+
+function bindDrag() {
+  const cv = $('canvas');
+  if (!cv) return;
+  Array.prototype.forEach.call(cv.querySelectorAll('.card'), function (card) {
+    card.addEventListener('mousedown', function (ev) {
+      if (ev.button !== 0) return;
+      const id = card.getAttribute('data-id');
+      const startX = ev.clientX, startY = ev.clientY;
+      const baseX = parseInt(card.style.left, 10) || 0, baseY = parseInt(card.style.top, 10) || 0;
+      let moved = false;
+      card.classList.add('dragging');
+      function onMove(e) {
+        const dx = e.clientX - startX, dy = e.clientY - startY;
+        if (Math.abs(dx) > 3 || Math.abs(dy) > 3) moved = true;
+        card.style.left = Math.max(0, baseX + dx) + 'px';
+        card.style.top = Math.max(0, baseY + dy) + 'px';
+        drawLinks();
+      }
+      function onUp() {
+        card.classList.remove('dragging');
+        document.removeEventListener('mousemove', onMove);
+        document.removeEventListener('mouseup', onUp);
+        const e = byId(id);
+        if (e) {
+          e.x = parseInt(card.style.left, 10) || 0;
+          e.y = parseInt(card.style.top, 10) || 0;
+          st.positions[id] = { x: e.x, y: e.y };
+          savePositions();
+        }
+        if (!moved) openEntity(id);
+        else renderCanvas();
+      }
+      document.addEventListener('mousemove', onMove);
+      document.addEventListener('mouseup', onUp);
+      ev.preventDefault();
+    });
+  });
+}
+
+/* линии связи между сущностями не рисуем: фронту не приходят данные о привязках БД к сервису */
+function drawLinks() {
+  const layer = $('link-layer');
+  if (layer) layer.innerHTML = '';
+}
+
+/* =========================================================
+   Создание сущностей: всё в дровере, без промежуточной модалки
+   ========================================================= */
+const REPOS = ['mockup_ws', 'code-683742', 'game-ridiculous'];
+const REPO_SOURCES = ['Repo', 'Gitverse', 'URL'];
+
+function openAdd() { openCreate(); }
+
+/* карточка появляется только после «Создать»: закрыли модалку — на канвасе ничего нет */
+function openCreate() {
+  st.creating = true;
+  st.createType = null;
+  st.selected = null;
+  st.draftName = '';
+  st.draftDesc = '';
+  st.draftRepoSource = 'Repo';
+  st.draftRepo = '';
+  st.draftBranch = 'main';
+  st.draftPort = 8080;
+  st.draftVcpu = 0.1;
+  st.draftRamMb = 256;
+  st.draftSteps = 3;
+  st.draftWfRuns = 1000;
+  st.draftDbConfig = 'db-m';
+  st.draftDbDisk = 50;
+  st.draftRedisConfig = 'rd-m';
+  st.draftRedisDisk = 20;
+  st.draftS3Storage = 100;
+  st.draftS3Read = 1000;
+  st.draftS3Write = 100;
+  st.draftS3Egress = 100;
+  render();
+}
+
+function cancelCreate() {
+  st.creating = false;
+  st.createType = null;
+  renderCreate();
+}
+
+function createTypeOf(t) { return CREATE_TYPES.filter(function (x) { return x.type === t; })[0] || null; }
+
+/* шаг 1 → шаг 2: тип выбран, подставляем имя по умолчанию.
+   Workflow — исключение: у него нет формы, сразу открываем его канвас. */
+function pickCreateType(t) {
+  const meta = createTypeOf(t);
+  if (!meta) return;
+  if (t === 'workflow') { createWorkflowNow(); return; }
+  st.createType = t;
+  st.draftName = defaultCreateName(t);
+  st.draftDesc = '';
+  renderCreate();
+  setTimeout(function () {
+    const el = $('f-repo') || $('f-name');
+    if (el && el.focus) el.focus();
+  }, 40);
+}
+
+function wfSuffix() { return Math.random().toString(16).slice(2, 8).padEnd(6, '0'); }
+
+/* workflow создаётся сразу и открывается его сценарий — без промежуточной формы */
+function createWorkflowNow() {
+  const pos = defaultPos(st.entities.length);
+  const e = {
+    id: uid('e'), type: 'workflow', name: 'workflow-' + wfSuffix(),
+    status: 'ok', deployed: true, created: new Date(), updated: new Date(),
+    steps: 3, description: '', wfRuns: 1000, runner: DEFAULT_RUNNER,
+    x: pos.x, y: pos.y
+  };
+  st.entities.push(e);
+  st.positions[e.id] = { x: pos.x, y: pos.y };
+  savePositions();
+  saveSpaces();
+  st.creating = false;
+  st.createType = null;
+  st.selected = null;
+  openEditor(e.id, 'scenario');
+  toast('Workflow «' + e.name + '» создан — сценарий открыт');
+}
+
+function backToTypePicker() { st.createType = null; renderCreate(); }
+
+function defaultCreateName(t) {
+  const n = st.entities.filter(function (x) { return x.type === t; }).length + 1;
+  if (t === 'db') return 'postgres-' + n;
+  if (t === 'redis') return 'cache-' + n;
+  if (t === 's3') return 'bucket-' + n;
+  if (t === 'workflow') return 'workflow-' + n;
+  if (t === 'pipeline') return 'pipeline-' + n;
+  return 'service-' + n;
+}
+
+function draftRepoInput(v) { st.draftRepo = v; }
+
+function repoOptions() {
+  const list = REPOS.slice();
+  if (st.draftRepo && list.indexOf(st.draftRepo) === -1) list.unshift(st.draftRepo);
+  return '<option value="">Не выбран</option>' + list.map(function (r) {
+    return '<option' + (st.draftRepo === r ? ' selected' : '') + '>' + esc(r) + '</option>';
+  }).join('');
+}
+
+/* имя сервиса генерируется из репозитория, отдельного поля названия нет */
+function repoServiceName(repo) {
+  const tail = String(repo || '').replace(/\/+$/, '').split('/').pop().replace(/\.git$/i, '');
+  return slug(tail);
+}
+
+/* единый перенос значений из сущности в поля формы */
+function syncDrafts(e) {
+  if (!e) return;
+  /* при открытии другой карточки черновик переменных не переносим */
+  st.draftVars = null;
+  st.draftConfig = e.config || 'standard';
+  st.draftSource = e.repoSource || 'Repo';
+  st.draftVcpu = servVcpu(e);
+  st.draftRamMb = servRamMb(e);
+  st.draftReplicas = repCount(e);
+  st.draftSteps = typeof e.steps === 'number' ? e.steps : 3;
+  st.draftDbConfig = e.dbConfig || 'db-m';
+  st.draftDbDisk = typeof e.dbDisk === 'number' ? e.dbDisk : 50;
+  st.draftRedisConfig = e.redisConfig || 'rd-m';
+  st.draftRedisDisk = typeof e.redisDisk === 'number' ? e.redisDisk : 20;
+  st.draftS3Storage = typeof e.s3Storage === 'number' ? e.s3Storage : 100;
+  st.draftS3Read = typeof e.s3Read === 'number' ? e.s3Read : 1000;
+  st.draftS3Write = typeof e.s3Write === 'number' ? e.s3Write : 100;
+  st.draftS3Egress = typeof e.s3Egress === 'number' ? e.s3Egress : 100;
+  st.draftWfRuns = typeof e.wfRuns === 'number' ? e.wfRuns : 1000;
+  st.draftBranch = e.branch || 'main';
+  st.draftPort = e.port || 8080;
+  st.draftRunner = e.runner || DEFAULT_RUNNER;
+}
+
+/* создание из формы дровера: у сервиса имя из репозитория, у остальных — из поля «Название» */
+function createFromDraft() {
+  const t = st.createType;
+  if (!t) return;
+  const pos = defaultPos(st.entities.length);
+  const e = {
+    id: uid('e'), type: t, name: '', status: 'ok', deployed: false, created: new Date(),
+    replicas: 1,
+    vcpu: st.draftVcpu, ramMb: st.draftRamMb, port: 8080,
+    dbConfig: st.draftDbConfig || 'db-m', dbDisk: st.draftDbDisk || 50,
+    redisConfig: st.draftRedisConfig || 'rd-m', redisDisk: st.draftRedisDisk || 20,
+    s3Storage: st.draftS3Storage || 100, s3Read: st.draftS3Read || 1000,
+    s3Write: st.draftS3Write || 100, s3Egress: st.draftS3Egress || 100,
+    wfRuns: st.draftWfRuns || 1000, steps: st.draftSteps || 3,
+    repoSource: st.draftRepoSource, repo: '', branch: st.draftBranch || 'main',
+    description: '', region: 'ru-central-1', pw: 1,
+    runner: DEFAULT_RUNNER,
+    x: pos.x, y: pos.y
+  };
+  /* сервис сначала не развёрнут, остальные (включая сценарии) готовы сразу */
+  if (t === 'service') { e.status = 'new'; e.deployed = false; }
+  if (t === 'db') e.port = 5432;
+  if (t === 'redis') e.port = 6379;
+
+  if (t === 'service') {
+    const el = $('f-repo');
+    const repo = (el ? el.value : st.draftRepo || '').trim();
+    if (!repo) { toast('Выберите репозиторий'); return; }
+    st.draftRepo = repo;
+    e.repo = repo;
+    e.name = repoServiceName(repo);
+  } else {
+    const nameEl = $('f-name');
+    const name = (nameEl ? nameEl.value : st.draftName || '').trim();
+    if (!name) { toast('Укажите название'); return; }
+    e.name = name;
+    const descEl = $('f-desc'); if (descEl) e.description = descEl.value.trim();
+    const brEl = $('f-branch'); if (brEl) e.branch = brEl.value;
+  }
+
+  st.entities.push(e);
+  st.positions[e.id] = { x: pos.x, y: pos.y };
+  savePositions();
+  saveSpaces();
+  st.creating = false;
+  st.createType = null;
+  st.selected = e.id;
+  /* у базы данных сразу открываем «Обзор»: там DSN, который нужно скопировать */
+  st.tab = t === 'db' ? 'overview' : 'settings';
+  syncDrafts(e);
+  render();
+  openDrawerEl();
+  toast('«' + e.name + '» создан — проверьте настройки' +
+    (t === 'service' ? ' и запустите деплой' : ''));
+}
+
+/* =========================================================
+   Демо-наполнение и удаление
+   ========================================================= */
+function seedDemo(silent) {
+  const now = Date.now();
+  const mk = (o) => Object.assign({
+    id: uid('e'), status: 'ok', deployed: true, created: new Date(now), replicas: 1,
+    vcpu: 0.25, ramMb: 512,
+    dbConfig: 'db-m', dbDisk: 50, redisConfig: 'rd-m', redisDisk: 20,
+    s3Storage: 100, s3Read: 1000, s3Write: 100, s3Egress: 100, wfRuns: 1000,
+    port: 8080, repoSource: 'Repo', repo: '', branch: 'main',
+    steps: 3, description: '', region: 'ru-central-1', pw: 1, x: 24, y: 24
+  }, o);
+  st.entities = [
+    mk({ type: 'service', name: 'game-ridiculous-artifacts', repo: 'github.com/Nick1994209/game-ridiculous', branch: 'main', replicas: 2, created: new Date(now - 6 * DAY), x: 24, y: 24 }),
+    mk({ type: 'workflow', name: 'support-bot', description: 'Бот поддержки: приём тикета → ответ агента → эскалация', x: 324, y: 24 }),
+    mk({ type: 'db', name: 'app-postgres', created: new Date(now - 2 * DAY), x: 24, y: 174 }),
+    mk({ type: 'redis', name: 'cache', created: new Date(now - 2 * DAY), x: 324, y: 174 }),
+    mk({ type: 'db', name: 'analytics-postgres', created: new Date(now - 5 * DAY), x: 624, y: 174 })
+  ];
+  st.entities.forEach(function (e) { st.positions[e.id] = { x: e.x, y: e.y }; });
+  savePositions();
+  saveSpaces();
+  render();
+  if (!silent) toast('Пример пространства загружен');
+}
+
+function seedDemoSpace() {
+  const sp = { id: uid('s'), name: 'Демо: интернет-магазин', created: new Date(), entities: [] };
+  st.spaces.push(sp);
+  st.currentSpaceId = sp.id;
+  st.view = 'canvas';
+  seedDemo(true);
+}
+
+/* Привязки БД к сервису нет: пользователь копирует DSN и использует его в коде сам. */
+
+function openDelete(id) { st.modal = { kind: 'delete', id: id }; renderModal(); }
+function openRedeployConfirm(tab) {
+  const e = byId(st.selected);
+  if (!e) return;
+  st.modal = { kind: 'redeploy', id: e.id, tab: tab };
+  renderModal();
+}
+function closeModal() { st.modal = null; renderModal(); }
+
+function renderModal() {
+  const root = $('modal-root');
+  if (!st.modal) { root.innerHTML = ''; return; }
+  const e = byId(st.modal.id);
+  if (!e) { root.innerHTML = ''; return; }
+
+  /* подтверждение сохранения настроек или переменных: без передеплоя изменения не применятся */
+  if (st.modal.kind === 'redeploy') {
+    root.innerHTML =
+      '<div class="overlay" onclick="if(event.target===this)closeModal()">' +
+        '<div class="modal">' +
+          '<h2>Применить изменения и передеплоить сервис?</h2>' +
+          '<p style="color:#5b6676;line-height:1.55;margin:12px 0 0">Изменение параметров конфигурации или переменных окружения требует передеплоя. Сервис будет обновлён с новыми настройками.</p>' +
+          '<div class="modal-footer">' +
+            '<button class="btn white" onclick="closeModal()">Отмена</button>' +
+            '<button class="btn green" onclick="confirmRedeploy()">Сохранить и передеплоить</button>' +
+          '</div>' +
+        '</div>' +
+      '</div>';
+    return;
+  }
+
+  root.innerHTML =
+    '<div class="overlay" onclick="if(event.target===this)closeModal()">' +
+      '<div class="modal">' +
+        '<h2>Удалить «' + esc(e.name) + '»?</h2>' +
+        '<p style="color:#5b6676;line-height:1.55;margin:12px 0 0">Карточка исчезнет с канваса, история деплоев и связанные данные будут удалены.</p>' +
+        '<label class="f">Введите название для подтверждения</label>' +
+        '<input class="in" id="del-name" autocomplete="off" oninput="validateDelete()">' +
+        '<div class="modal-footer">' +
+          '<button class="btn white" onclick="closeModal()">Отмена</button>' +
+          '<button class="btn danger" id="del-btn" disabled onclick="doDelete()">Удалить</button>' +
+        '</div>' +
+      '</div>' +
+    '</div>';
+  validateDelete();
+}
+
+/* сохранение вкладки и передеплой после подтверждения */
+function confirmRedeploy() {
+  const m = st.modal;
+  const e = m ? byId(m.id) : null;
+  if (!m || !e) return;
+  if (m.tab === 'vars') {
+    const err = applyVarsDraft(e);
+    if (err) { closeModal(); toast(err); return; }
+    st.draftVars = e.vars.map(function (v) { return { name: v.name, value: v.value, secret: !!v.secret }; });
+  } else {
+    saveEntity(e.id, true);
+  }
+  closeModal();
+  const x = byId(e.id);
+  if (x) startDeploy(x, m.tab === 'vars' ? 'vars' : 'settings');
+}
+
+/* единый запуск деплоя из кнопки и после сохранения */
+function startDeploy(e, source) {
+  e.updated = new Date();
+  e.status = 'deploying';
+  const list = deploysOf(e);
+  const runNo = '#' + (1842 + list.length + 1);
+  list.unshift({ run: runNo, branch: e.branch || 'main', status: 'running', at: new Date(), dur: '—' });
+  saveSpaces();
+  render();
+  toast(source === 'deploy'
+    ? 'Деплой запущен — логи и история появятся во вкладках «Деплои» и «Логи»'
+    : source === 'vars'
+      ? 'Переменные сохранены — сервис передеплоивается'
+      : 'Настройки сохранены — сервис передеплоивается');
+  const id = e.id, run = runNo;
+  setTimeout(function () {
+    const x = byId(id); if (!x) return;
+    const d = (x.deploys || []).filter(function (r) { return r.run === run; })[0];
+    if (!d || d.status !== 'running') return;
+    d.status = 'ok'; d.dur = '1 мин 12 с';
+    x.status = 'ok'; x.deployed = true; x.deployedAt = new Date();
+    saveSpaces();
+    render();
+    toast('«' + x.name + '» задеплоен');
+  }, 2500);
+}
+function validateDelete() {
+  const inp = $('del-name'), b = $('del-btn');
+  const e = st.modal ? byId(st.modal.id) : null;
+  if (!inp || !b || !e) return;
+  b.disabled = inp.value !== e.name;
+}
+function doDelete() {
+  const e = st.modal ? byId(st.modal.id) : null;
+  if (!e) return;
+  st.entities = st.entities.filter(x => x.id !== e.id);
+  delete st.positions[e.id];
+  savePositions();
+  saveSpaces();
+  if (st.selected === e.id) closeDrawer(true);
+  closeModal();
+  render();
+  toast('«' + e.name + '» удалён');
+}
+
+/* =========================================================
+   Дровер
+   ========================================================= */
+function openEntity(id) {
+  st.creating = false;
+  st.createType = null;
+  /* карточка открывается только на канвасе пространства */
+  st.view = 'canvas';
+  st.editorId = null;
+  st.selected = id;
+  const e = byId(id);
+  st.tab = isScenarioType(e) ? 'settings' : (e && !isDeployed(e) ? 'settings' : 'overview');
+  syncDrafts(e);
+  render();
+  openDrawerEl();
+}
+function openDrawerEl() { $('drawer').classList.add('open'); $('drawer-bg').classList.add('open'); }
+function closeDrawer(silent) {
+  st.selected = null;
+  $('drawer').classList.remove('open');
+  $('drawer-bg').classList.remove('open');
+  if (!silent) render();
+}
+
+/* ---------- переменные сервиса (AICW-7622) ---------- */
+function varsOf(e) {
+  if (!e.vars) e.vars = [
+    { name: 'DB_HOST', value: 'db.internal', secret: false },
+    { name: 'DB_PASSWORD', value: 's3cret', secret: true }
+  ];
+  return e.vars;
+}
+/* черновик таблицы переменных: изменения копятся до общей кнопки «Сохранить» */
+function varsDraft(e) {
+  if (!Array.isArray(st.draftVars)) {
+    st.draftVars = varsOf(e).map(function (v) {
+      return { name: v.name, value: v.value, secret: !!v.secret };
+    });
+  }
+  return st.draftVars;
+}
+
+function tabVars(e) {
+  const id = esc(e.id);
+  const list = varsDraft(e);
+  const rows = list.length
+    ? '<div class="var-table">' + list.map(function (v, i) {
+        return '<div class="var-edit">' +
+          '<input class="nm" value="' + esc(v.name) + '" placeholder="NAME" autocomplete="off" ' +
+            'oninput="updVar(\'name\',' + i + ',this.value)">' +
+          '<input type="' + (v.secret ? 'password' : 'text') + '" value="' + esc(v.value) + '" placeholder="Значение" ' +
+            'autocomplete="off" oninput="updVar(\'value\',' + i + ',this.value)">' +
+          '<select onchange="updVar(\'secret\',' + i + ',this.value)">' +
+            '<option value="0"' + (v.secret ? '' : ' selected') + '>Открытая</option>' +
+            '<option value="1"' + (v.secret ? ' selected' : '') + '>Секрет</option>' +
+          '</select>' +
+          '<button class="icon-btn" title="Удалить строку" onclick="delVarDraft(' + i + ')">×</button>' +
+        '</div>';
+      }).join('') + '</div>'
+    : '<div class="var-empty">Переменных пока нет — добавьте первую строку.</div>';
+  return '<div class="section"><h4>Переменные</h4><div class="box">' +
+      rows +
+      '<div class="var-err" id="verr"></div>' +
+      '<div class="d-actions" style="margin-top:12px">' +
+        '<button class="btn white sm" onclick="addVarDraft()">Добавить переменную</button>' +
+      '</div>' +
+      '<div class="hint-text">Добавляйте, редактируйте и удаляйте строки в таблице: изменения применятся одной кнопкой «Сохранить» внизу вкладки.</div>' +
+    '</div></div>' +
+    '<div class="d-actions">' +
+      '<button class="btn green" onclick="openRedeployConfirm(\'vars\')">Сохранить</button>' +
+      '<button class="btn white" onclick="resetVarsDraft(\'' + id + '\')">Отмена</button>' +
+    '</div>';
+}
+
+function updVar(field, i, val) {
+  if (!Array.isArray(st.draftVars) || !st.draftVars[i]) return;
+  if (field === 'secret') st.draftVars[i].secret = val === '1';
+  else st.draftVars[i][field] = val;
+}
+
+function addVarDraft() {
+  if (!Array.isArray(st.draftVars)) st.draftVars = [];
+  st.draftVars.push({ name: '', value: '', secret: false });
+  renderDrawer();
+}
+
+function delVarDraft(i) {
+  if (!Array.isArray(st.draftVars)) return;
+  st.draftVars.splice(i, 1);
+  renderDrawer();
+}
+
+function resetVarsDraft(id) {
+  const e = byId(id);
+  st.draftVars = e ? varsOf(e).map(function (v) {
+    return { name: v.name, value: v.value, secret: !!v.secret };
+  }) : [];
+  renderDrawer();
+  toast('Изменения переменных отменены');
+}
+
+function validateVarsDraft() {
+  const list = (st.draftVars || []).filter(function (v) { return v.name.trim() || v.value; });
+  const seen = {};
+  for (let i = 0; i < list.length; i++) {
+    const n = list[i].name.trim();
+    if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(n)) return 'Имя переменной «' + n + '»: латиница, цифры и _';
+    if (/^WS_/i.test(n)) return 'Префикс WS_ зарезервирован системой';
+    if (seen[n]) return 'Переменная ' + n + ' указана дважды';
+    seen[n] = true;
+  }
+  return '';
+}
+
+function applyVarsDraft(e) {
+  const err = validateVarsDraft();
+  if (err) return err;
+  e.vars = (st.draftVars || []).filter(function (v) { return v.name.trim(); }).map(function (v) {
+    return { name: v.name.trim(), value: v.value, secret: !!v.secret };
+  });
+  return '';
+}
+
+function setTab(t) {
+  const e = byId(st.selected);
+  if (t === 'vars' && e && e.type === 'service') {
+    st.draftVars = varsOf(e).map(function (v) { return { name: v.name, value: v.value, secret: !!v.secret }; });
+  }
+  st.tab = t;
+  renderDrawer();
+}
+function openSettings() { st.selected = 'settings'; st.tab = 'settings'; renderDrawer(); openDrawerEl(); }
+
+/* ---------- модалка создания: шаг 1 — тип, шаг 2 — поля выбранного типа ---------- */
+function createModalHtml() {
+  const meta = st.createType ? createTypeOf(st.createType) : null;
+  const title = meta ? 'Создать: ' + esc(meta.title) : 'Что создаём?';
+  const sub = meta
+    ? esc(meta.desc) + ' · остальное настроите в дровере после создания'
+    : 'Выберите тип — форма создания откроется в этом же окне';
+
+  let body = '';
+  if (!meta) {
+    body = '<div class="create-grid">' + CREATE_TYPES.map(function (c) {
+        return '<button class="create-tile" onclick="pickCreateType(\'' + c.type + '\')">' +
+          '<span class="t-ico">' + I[c.icon] + '</span>' +
+          '<b>' + esc(c.title) + '</b><small>' + esc(c.desc) + '</small></button>';
+      }).join('') + '</div>';
+  } else {
+    let form = '';
+    if (meta.type === 'service') {
+      const repoField = st.draftRepoSource === 'URL'
+        ? '<input class="in" id="f-repo" placeholder="https://github.com/org/repo" value="' + esc(st.draftRepo) + '" autocomplete="off" ' +
+            'oninput="draftRepoInput(this.value)" onkeydown="if(event.key===\'Enter\'){event.preventDefault();createFromDraft();}">'
+        : '<select class="in" id="f-repo" onchange="draftRepoInput(this.value)">' + repoOptions() + '</select>';
+      form = '<label class="f">Источник кода</label><div class="tabs">' +
+          REPO_SOURCES.map(function (s) {
+            return '<button class="tab ' + (st.draftRepoSource === s ? 'active' : '') + '" onclick="setSource(\'' + s + '\')">' + s + '</button>';
+          }).join('') +
+        '</div>' +
+        '<label class="f">Репозиторий</label>' + repoField +
+        '<div class="hint-text">Список репозиториев берётся из подключённого git-провайдера. Название сервиса сгенерируется из репозитория, ветка и конфигурация контейнера — в настройках после создания.</div>';
+    } else {
+      form = '<label class="f">Название</label>' +
+        '<input class="in" id="f-name" maxlength="80" value="' + esc(st.draftName) + '" autocomplete="off" ' +
+          'onkeydown="if(event.key===\'Enter\'){event.preventDefault();createFromDraft();}">';
+      if (meta.type === 'pipeline') {
+        form += '<label class="f">Ветка</label><select class="in" id="f-branch">' + branchOptions(st.draftBranch) + '</select>';
+      }
+      const hints = {
+        db: 'Managed PostgreSQL: после создания в карточке останутся название, дата и DSN.',
+        redis: 'Managed Redis: конфигурация и размер диска — в настройках после создания.',
+        s3: 'Object Storage: регион, хранение, операции и трафик — в настройках после создания.',
+        pipeline: 'Ветка задаётся здесь; в карточке сценария потом меняются только название и раннер.'
+      };
+      form += '<div class="hint-text">' + esc(hints[meta.type] || '') + '</div>';
+    }
+    body = '<button class="link-btn" onclick="backToTypePicker()" style="margin-bottom:16px">← Другой тип</button>' +
+      form +
+      '<div class="d-actions">' +
+        '<button class="btn green" onclick="createFromDraft()">' + esc(meta.action) + '</button>' +
+        '<button class="btn white" onclick="cancelCreate()">Отмена</button>' +
+      '</div>';
+  }
+
+  return '<div class="overlay" onclick="if(event.target===this)cancelCreate()">' +
+      '<div class="create-modal">' +
+        '<div class="create-modal-head">' +
+          '<div><h2>' + title + '</h2><p>' + sub + '</p></div>' +
+          '<button class="modal-close" onclick="cancelCreate()" title="Закрыть">×</button>' +
+        '</div>' +
+        '<div class="create-modal-body">' + body + '</div>' +
+      '</div>' +
+    '</div>';
+}
+
+/* ---------- карточка сценария в боковом меню: только название и раннер ---------- */
+function runnerOptions(cur) {
+  const id = cur || DEFAULT_RUNNER;
+  return RUNNERS.map(function (r) {
+    return '<option value="' + r.id + '"' + (id === r.id ? ' selected' : '') + '>' + esc(r.name) + '</option>';
+  }).join('');
+}
+
+function runnerHint(id) {
+  const r = RUNNERS.filter(function (x) { return x.id === id; })[0] || RUNNERS[RUNNERS.length - 1];
+  return r.name + ' · ' + r.detail;
+}
+
+function pickRunner(id) {
+  st.draftRunner = id;
+  const hint = $('f-runner-hint');
+  if (hint) hint.textContent = runnerHint(id);
+}
+
+function scenarioSettings(e) {
+  return '<label class="f">Название сценария</label>' +
+    '<input class="in" id="f-name" maxlength="80" value="' + esc(e.name) + '" autocomplete="off" ' +
+      'onkeydown="if(event.key===\'Enter\'){event.preventDefault();saveScenario(\'' + esc(e.id) + '\');}">' +
+    '<label class="f">Runner</label>' +
+    '<select class="in" id="f-runner" onchange="pickRunner(this.value)">' + runnerOptions(e.runner) + '</select>' +
+    '<div class="hint-text" id="f-runner-hint">' + esc(runnerHint(e.runner || DEFAULT_RUNNER)) + '</div>' +
+    '<div class="d-actions">' +
+      '<button class="btn green" onclick="openScenarioCanvas(\'' + esc(e.id) + '\')">Открыть канвас сценария</button>' +
+      '<button class="btn white" onclick="saveScenario(\'' + esc(e.id) + '\')">Сохранить</button>' +
+      '<button class="btn danger" onclick="openDelete(\'' + esc(e.id) + '\')">Удалить</button>' +
+    '</div>';
+}
+
+/* переход из карточки на канвас сценария: несохранённые правки названия и раннера не теряются */
+function openScenarioCanvas(id) {
+  const e = byId(id);
+  if (!e) return;
+  const nameEl = $('f-name');
+  const name = nameEl ? nameEl.value.trim() : '';
+  if (name) e.name = name;
+  const runnerEl = $('f-runner');
+  if (runnerEl) e.runner = runnerEl.value;
+  e.updated = new Date();
+  saveSpaces();
+  openEditor(id, 'scenario');
+}
+
+function saveScenario(id) {
+  const e = byId(id); if (!e) return;
+  const nameEl = $('f-name');
+  const name = nameEl ? nameEl.value.trim() : e.name;
+  if (!name) { toast('Укажите название сценария'); return; }
+  e.name = name;
+  const runnerEl = $('f-runner');
+  if (runnerEl) e.runner = runnerEl.value;
+  e.updated = new Date();
+  saveSpaces();
+  render();
+  toast('Сценарий сохранён');
+}
+
+function renderDrawer() {
+  const dr = $('drawer');
+  if (!dr) return;
+  if (!st.selected) { dr.innerHTML = ''; return; }
+  if (st.selected === 'settings') { dr.innerHTML = drawerSettings(); return; }
+  const e = byId(st.selected);
+  if (!e) { dr.innerHTML = ''; return; }
+
+  /* у сценариев (workflow и pipeline) в боковой карточке только два поля:
+     название сценария и выбор раннера */
+  const scenario = isScenarioType(e);
+  const tabs = scenario
+    ? [{ k: 'settings', l: 'Настройки' }]
+    : [{ k: 'overview', l: 'Обзор' }, { k: 'settings', l: 'Настройки' }];
+  if (e.type === 'service') { tabs.push({ k: 'vars', l: 'Переменные' }, { k: 'deploys', l: 'Деплои' }, { k: 'logs', l: 'Логи' }); }
+  if (scenario) st.tab = 'settings';
+
+  let body = '';
+  if (scenario) body = scenarioSettings(e);
+  else if (st.tab === 'overview') body = tabOverview(e);
+  else if (st.tab === 'settings') body = tabSettings(e);
+  else if (st.tab === 'vars') body = tabVars(e);
+  else if (st.tab === 'deploys') body = tabDeploys(e);
+  else body = tabLogs(e);
+
+  dr.innerHTML =
+    '<div class="dr-head">' +
+      '<div class="dr-title-row">' +
+        '<div><h2 class="dr-title">' + esc(e.name) +
+          '<span class="type-badge">' + esc(TYPES[e.type].short) + '</span>' + statusBadge(e.status) + '</h2>' +
+          '<div class="dr-sub">' + esc(e.type === 'service' ? (e.repo || 'Репозиторий не выбран') : TYPES[e.type].label) + '</div></div>' +
+        '<button class="modal-close" onclick="closeDrawer()" title="Закрыть">×</button>' +
+      '</div>' +
+      '<div class="dr-tabs">' + tabs.map(function (t) {
+        return '<button class="dr-tab ' + (st.tab === t.k ? 'on' : '') + '" onclick="setTab(\'' + t.k + '\')">' + t.l + '</button>';
+      }).join('') + '</div>' +
+    '</div>' +
+    '<div class="dr-body">' + body + '</div>';
+}
+
+/* сводка «Конфигурация и прогноз» для каждого типа сущности */
+function serviceTotalLabel(e) {
+  const fixed = DEPLOY_COST + ARTIFACT_COST + REPO_COST;
+  return fmt(fixed + servPerReplica(e) * repCount(e));
+}
+
+function s3OptsOf(e) {
+  return {
+    storage: typeof e.s3Storage === 'number' ? e.s3Storage : 100,
+    read: typeof e.s3Read === 'number' ? e.s3Read : 1000,
+    write: typeof e.s3Write === 'number' ? e.s3Write : 100,
+    egress: typeof e.s3Egress === 'number' ? e.s3Egress : 100
+  };
+}
+
+function configBoxHtml(e) {
+  const head = '<div class="section"><h4>Конфигурация и прогноз</h4><div class="box">';
+  const edit = '<button class="btn white sm" onclick="setTab(\'settings\')">Изменить</button>';
+  const tail = '<div class="hint-text">Тарифы Cloud.ru Evolution без НДС, 720 часов в месяц.</div></div></div>';
+
+  /* у базы данных конфигурации и прогноза в интерфейсе нет — только название, дата и DSN */
+  if (e.type === 'redis') {
+    const c = pickById(REDIS_CONFIGS, e.redisConfig);
+    const d = typeof e.redisDisk === 'number' ? e.redisDisk : c.ssd;
+    const x = redisCost(c, d);
+    return head + '<div class="box-head"><b>Managed Redis · ' + esc(c.name) + '</b>' + edit + '</div>' +
+      '<div class="box-row"><span>vCPU · RAM</span><span>' + c.vcpu + ' × ' + rate(RATES.redis.vcpu) + '/час · ' + c.ram + ' ГБ × ' + rate(RATES.redis.ram) + '/ГБ·час</span></div>' +
+      '<div class="box-row"><span>Диск SSD</span><span>' + num(d) + ' ГБ × ' + rate(RATES.redis.ssd) + '/ГБ·час</span></div>' +
+      '<div class="box-row"><span>Итого в месяц</span><span>' + fmt(x.total) + '</span></div>' + tail;
+  }
+  if (e.type === 's3') {
+    const o = s3OptsOf(e), x = s3Cost(o);
+    return head + '<div class="box-head"><b>Object Storage</b>' + edit + '</div>' +
+      '<div class="box-row"><span>Хранение</span><span>' + num(o.storage) + ' ГБ × ' + rate(RATES.s3.storage) + '</span></div>' +
+      '<div class="box-row"><span>Операции</span><span>чтение ' + num(o.read) + ' тыс. · запись ' + num(o.write) + ' тыс.</span></div>' +
+      '<div class="box-row"><span>Исходящий трафик</span><span>' + num(o.egress) + ' ГБ × ' + rate(RATES.s3.egress) + '</span></div>' +
+      '<div class="box-row"><span>Итого в месяц</span><span>' + fmt(x.total) + '</span></div>' + tail;
+  }
+  if (e.type === 'workflow') {
+    const runs = typeof e.wfRuns === 'number' ? e.wfRuns : 1000;
+    const x = wfCost(e.steps, runs);
+    return head + '<div class="box-head"><b>Workflow Studio</b>' + edit + '</div>' +
+      '<div class="box-row"><span>Запуск шага</span><span>' + fmt(RATES.workflow.step) + '</span></div>' +
+      '<div class="box-row"><span>Шагов · запусков в месяц</span><span>' + e.steps + ' × ' + num(runs) + '</span></div>' +
+      '<div class="box-row"><span>Итого в месяц</span><span>' + fmt(x.total) + '</span></div>' + tail;
+  }
+  if (e.type === 'pipeline') {
+    const total = pipelineCost(e.steps);
+    return head + '<div class="box-head"><b>Pipeline · ' + e.steps + ' шага</b>' + edit + '</div>' +
+      '<div class="box-row"><span>Ветка</span><span>' + esc(e.branch || 'main') + '</span></div>' +
+      '<div class="box-row"><span>Шаг деплоя</span><span>' + e.steps + ' × ' + fmt(RATES.container.step) + '</span></div>' +
+      '<div class="box-row"><span>Стоимость запуска</span><span>' + fmt(total) + '</span></div>' + tail;
+  }
+  return '';
+}
+
+function tabOverview(e) {
+  let rows = '';
+  rows += row(I.cloud, 'Статус', statusBadge(e.status), true);
+  rows += row(I.clock, 'Создано', absTime(e.created), false);
+
+  if (e.type === 'workflow' || (e.type === 'service' && isDeployed(e))) rows += row(I.globe, 'Домен', domainOf(e), true);
+  if (e.type === 'service' || e.type === 'redis') rows += row(I.plug, 'Порт', String(e.port), false);
+
+  if (e.type === 'service') {
+    rows += row(I.repo, 'Репозиторий', e.repo || '—', true);
+    rows += row(I.branch, 'Ветка', e.branch || '—', false);
+    rows += row(I.scenario, 'Pipeline', 'Стандартный сценарий · 3 шага', true);
+  }
+  if (e.type === 'workflow') rows += row(I.wf, 'Шагов', String(e.steps), false);
+  if (e.type === 'pipeline') {
+    rows += row(I.branch, 'Ветка', e.branch || 'main', false);
+    rows += row(I.scenario, 'Шагов деплоя', String(e.steps), false);
+  }
+  if (e.type === 's3') rows += row(I.cloud, 'Регион', e.region, false);
+
+  let extra = '';
+  if (e.type === 'db') {
+    const masked = e.revealed ? esc(connStr(e)) : '••••••••••••';
+    extra += '<div class="section"><h4>Данные для подключения</h4><div class="box">' +
+      '<div class="drow"><span class="dico">' + I.key + '</span><span class="dlabel">DSN</span>' +
+        '<span class="dval mono" id="cs" title="Строка подключения">' + masked + '</span></div>' +
+      '<div class="d-actions" style="margin-top:12px">' +
+        '<button class="btn white sm" id="rvb" onclick="toggleReveal()">' + (e.revealed ? 'Скрыть' : 'Показать') + '</button>' +
+        '<button class="btn green sm" onclick="copyConn()">Копировать DSN</button>' +
+      '</div>' +
+      '<div class="hint-text">Скопируйте строку подключения и используйте её в коде своего сервиса: автоматической привязки базы к сервису нет.</div>' +
+      '</div></div>';
+  }
+  if (e.type === 'workflow') {
+    const runs = wfRunsOf(e);
+    extra += '<div class="section"><h4>Сценарий</h4><div class="box">' +
+      '<div class="box-row"><span>Описание</span><span>' + esc(e.description || '—') + '</span></div>' +
+      wfMini() +
+      '<div class="d-actions" style="margin-top:10px">' +
+        '<button class="btn green sm" onclick="openEditor(\'' + esc(e.id) + '\',\'scenario\')">Открыть сценарий</button>' +
+        '<button class="btn white sm" onclick="openEditor(\'' + esc(e.id) + '\',\'variables\')">Переменные</button>' +
+      '</div></div></div>' +
+      '<div class="section"><h4>Последние запуски</h4><div class="box">' +
+        '<div class="box-head"><b>Прогонов: ' + runs.length + '</b>' +
+          '<button class="btn white sm" onclick="openEditor(\'' + esc(e.id) + '\',\'runs\')">Вся история</button></div>' +
+        '<table class="hist"><thead><tr><th>Run</th><th>Статус</th><th>Триггер</th><th>Дата</th></tr></thead><tbody>' +
+        runs.slice(0, 3).map(function (r) {
+          return '<tr><td class="mono">' + esc(r.id) + '</td><td>' + statusBadge(r.status) + '</td>' +
+            '<td>' + esc(r.trigger) + '</td><td>' + esc(absTime(new Date(r.at))) + '</td></tr>';
+        }).join('') +
+        '</tbody></table></div></div>' +
+      '<div class="section"><h4>Триггеры</h4><div class="box">' +
+        '<div class="box-head"><b>' + wfTriggersOf().length + ' триггера</b>' +
+          '<button class="btn white sm" onclick="openEditor(\'' + esc(e.id) + '\',\'triggers\')">Настроить</button></div>' +
+        wfTriggersOf().map(function (t) {
+          return '<div class="box-row"><span>' + esc(t.title) + '</span><span>' + esc(t.detail) + '</span></div>';
+        }).join('') +
+      '</div></div>';
+  }
+  if (e.type === 'service') {
+    const vcpu = servVcpu(e), ramMb = servRamMb(e);
+    extra += '<div class="section"><h4>Конфигурация и прогноз</h4><div class="box">' +
+      '<div class="box-head"><b>Container Apps · ' + cpuText(vcpu) + ' vCPU · ' + ramText(ramMb) + '</b>' +
+        '<button class="btn white sm" onclick="setTab(\'settings\')">Изменить</button></div>' +
+      '<div class="box-row"><span>vCPU · RAM</span><span>' + cpuText(vcpu) + ' × ' + rate(RATES.container.vcpu) + '/час · ' + ramText(ramMb) + ' × ' + rate(RATES.container.ram) + '/ГБ·час</span></div>' +
+      '<div class="box-row"><span>Цена за реплику</span><span>' + fmt(servPerReplica(e)) + ' / мес</span></div>' +
+      '<div class="box-row"><span>Итого в месяц</span><span>' + serviceTotalLabel(e) + '</span></div>' +
+      '<div class="hint-text">Итого = реплики × стоимость реплики + деплой ' + fmt(DEPLOY_COST) + ', Artifact Registry ' + fmt(ARTIFACT_COST) + ' и Repo ' + fmt(REPO_COST) + '.</div>' +
+      '</div></div>' +
+      '<div class="section"><h4>Масштабирование</h4><div class="box">' +
+        '<div class="box-head"><b>Реплики</b><span class="hint-chip">ручное</span></div>' +
+        '<div class="box-row"><span>Количество</span><span>' + repCount(e) + '</span></div>' +
+        '<div class="d-actions" style="margin-top:10px"><button class="btn white sm" onclick="setTab(\'settings\')">Изменить</button></div>' +
+      '</div></div>';
+  }
+  if (e.type === 'redis' || e.type === 's3' || e.type === 'workflow' || e.type === 'pipeline') extra += configBoxHtml(e);
+
+  const actions = '<div class="d-actions">' +
+    (e.type === 'service' || e.type === 'pipeline'
+      ? '<button class="btn green" onclick="deployEntity(\'' + esc(e.id) + '\')">' +
+          (isDeployed(e) ? 'Перезапустить ' + I.refresh : 'Задеплоить') + '</button>'
+      : '') +
+    (isScenarioType(e) ? '' : '<button class="btn white" onclick="setTab(\'settings\')">Настройки</button>') +
+    '<button class="btn danger" onclick="openDelete(\'' + esc(e.id) + '\')">Удалить</button>' +
+  '</div>';
+
+  /* название сервиса — метаданные: меняется без передеплоя */
+  let meta = '';
+  if (e.type === 'service') {
+    meta = '<div class="section"><h4>Название сервиса</h4><div class="box">' +
+      '<label class="f" style="margin-top:0">Название</label>' +
+      '<input class="in" id="ov-name" maxlength="100" value="' + esc(e.name) + '" autocomplete="off" ' +
+        'onkeydown="if(event.key===\'Enter\'){event.preventDefault();saveServiceName(\'' + esc(e.id) + '\');}">' +
+      '<div class="d-actions" style="margin-top:10px">' +
+        '<button class="btn green sm" onclick="saveServiceName(\'' + esc(e.id) + '\')">Сохранить</button>' +
+      '</div>' +
+      '<div class="hint-text">Название — метаданные карточки: сохраняется сразу, без передеплоя сервиса.</div>' +
+      '</div></div>';
+  }
+
+  return meta + '<div class="section"><h4>Детали</h4>' + rows + '</div>' + extra + actions;
+}
+
+function saveServiceName(id) {
+  const e = byId(id); if (!e) return;
+  const inp = $('ov-name');
+  const name = inp ? inp.value.trim() : '';
+  if (!name) { toast('Укажите название сервиса'); return; }
+  e.name = name;
+  e.updated = new Date();
+  saveSpaces();
+  render();
+  toast('Название сервиса сохранено');
+}
+
+function row(icon, label, value, isHtml) {
+  const v = (isHtml && value && String(value).charAt(0) === '<')
+    ? value
+    : '<span class="dval' + (isHtml ? ' link' : '') + '" title="' + esc(value) + '">' + esc(value) + '</span>';
+  return '<div class="drow"><span class="dico">' + icon + '</span><span class="dlabel">' + esc(label) + '</span>' + v + '</div>';
+}
+
+function connStr(e) { return 'postgres://app:pw' + (e.pw || 1) + '@db.internal:5432/' + encodeURIComponent(e.name); }
+function toggleReveal() {
+  const e = byId(st.selected); if (!e) return;
+  e.revealed = !e.revealed;
+  const cs = $('cs'); if (cs) cs.textContent = e.revealed ? connStr(e) : '••••••••••••';
+  const b = $('rvb'); if (b) b.textContent = e.revealed ? 'Скрыть' : 'Показать';
+}
+function copyConn() {
+  const e = byId(st.selected); if (!e) return;
+  const v = connStr(e);
+  const done = () => toast('Скопировано: ' + (e.revealed ? v : 'значение Connection Database'));
+  if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(v).then(done).catch(done);
+  else done();
+}
+
+/* реплики — одно значение: бэк передаёт его и как минимум, и как максимум */
+function repCount(e) {
+  if (typeof e.replicas === 'number') return e.replicas;
+  if (typeof e.replicasMax === 'number') return e.replicasMax;
+  return 1;
+}
+/* конфигурация Container Apps — готовые наборы vCPU/RAM, как в каталоге cloud.ru */
+function containerPreset() {
+  const vcpu = typeof st.draftVcpu === 'number' ? st.draftVcpu : 0.1;
+  const ramMb = typeof st.draftRamMb === 'number' ? st.draftRamMb : 256;
+  return CONTAINER_PRESETS.filter(function (p) { return p.vcpu === vcpu && p.ramMb === ramMb; })[0] || null;
+}
+
+function presetLabel(p) { return cpuText(p.vcpu) + ' vCPU · ' + ramText(p.ramMb); }
+
+function containerOptions() {
+  const cur = containerPreset();
+  let html = '';
+  if (!cur) {
+    html += '<option value="" selected>' + cpuText(st.draftVcpu) + ' vCPU · ' + ramText(st.draftRamMb) + ' — текущая</option>';
+  }
+  html += CONTAINER_PRESETS.map(function (p) {
+    return '<option value="' + p.id + '"' + (cur && cur.id === p.id ? ' selected' : '') + '>' + presetLabel(p) + '</option>';
+  }).join('');
+  return html;
+}
+
+function containerCostHint() {
+  const per = (st.draftVcpu || 0) * RATES.container.vcpu * HOURS + ((st.draftRamMb || 0) / 1024) * RATES.container.ram * HOURS;
+  return 'vCPU ' + rate(RATES.container.vcpu) + '/час · RAM ' + rate(RATES.container.ram) + '/ГБ·час. Реплика ≈ ' + fmt(per) + '/мес.';
+}
+
+function pickContainerCfg(id) {
+  const p = CONTAINER_PRESETS.filter(function (x) { return x.id === id; })[0];
+  if (!p) return;
+  st.draftVcpu = p.vcpu;
+  st.draftRamMb = p.ramMb;
+  const hint = $('f-cfg-hint');
+  if (hint) hint.textContent = containerCostHint();
+  refreshPrice();
+}
+
+function branchOptions(cur) {
+  const list = ['main', 'master', 'db-prototype'];
+  if (cur && list.indexOf(cur) === -1) list.unshift(cur);
+  return list.map(function (b) { return '<option' + (cur === b ? ' selected' : '') + '>' + esc(b) + '</option>'; }).join('');
+}
+
+function bumpReplicas(d) {
+  st.draftReplicas = Math.max(1, Math.min(10, (st.draftReplicas || 1) + d));
+  const el = $('f-rep');
+  if (el) el.textContent = st.draftReplicas;
+  refreshPrice();
+}
+
+/* ---------- настройки (единая форма создания и редактирования) ---------- */
+function tabSettings(e) {
+  /* у сервиса название редактируется на вкладке «Обзор», здесь — только параметры контейнера */
+  let fields = '';
+  if (e.type !== 'service') {
+    fields += '<label class="f">Название</label>' +
+      '<input class="in" id="f-name" maxlength="80" value="' + esc(e.name) + '" autocomplete="off">' +
+      '<div class="counter" id="f-count">' + e.name.length + '/80</div>';
+  }
+
+  if (e.type === 'service') {
+    const dRep = typeof st.draftReplicas === 'number' ? st.draftReplicas : repCount(e);
+    fields += '<label class="f" style="margin-top:0">Репозиторий</label>' +
+      '<div class="locked" title="Репозиторий нельзя изменить после создания">' +
+        '<span class="ico">' + I.repo + '</span>' +
+        '<span class="val mono">' + esc(e.repo || '—') + '</span>' +
+        '<span class="tag">' + esc(e.repoSource || 'Repo') + '</span>' +
+      '</div>' +
+      '<label class="f">Ветка</label><select class="in" id="f-branch">' + branchOptions(e.branch) + '</select>' +
+      '<label class="f">Конфигурация (ресурсы)</label>' +
+      '<select class="in" id="f-cfg" onchange="pickContainerCfg(this.value)">' + containerOptions() + '</select>' +
+      '<div class="hint-text" id="f-cfg-hint">' + containerCostHint() + '</div>' +
+      '<label class="f">Порт приложения</label><div class="port-row">' +
+        '<input class="in" id="f-port" value="' + e.port + '" inputmode="numeric">' +
+      '</div>' +
+      '<label class="f">Количество реплик</label>' +
+      '<div class="repl-ctl">' +
+        '<button class="btn" onclick="bumpReplicas(-1)" aria-label="Меньше реплик">−</button>' +
+        '<span class="val" id="f-rep">' + dRep + '</span>' +
+        '<button class="btn" onclick="bumpReplicas(1)" aria-label="Больше реплик">+</button>' +
+      '</div>' +
+      '<div class="hint-text">Ручное масштабирование: одна и та же величина уходит в Container Apps как минимум и максимум.</div>';
+  }
+  /* у workflow и pipeline формы настроек в дровере нет: подробности — на странице сценария.
+     У базы данных в настройках остаётся только название: DSN смотрим на вкладке «Обзор». */
+  if (e.type === 'redis') {
+    fields += '<label class="f">Конфигурация</label>' + cfgPicker(REDIS_CONFIGS, st.draftRedisConfig, 'pickRedisConfig') +
+      '<label class="f">Диск SSD, ГБ</label>' + diskStepper('draftRedisDisk', 10, 500) +
+      '<div class="hint-text">vCPU ' + rate(RATES.redis.vcpu) + '/час · RAM ' + rate(RATES.redis.ram) + '/ГБ·час · SSD ' + rate(RATES.redis.ssd) + '/ГБ·час.</div>';
+  }
+  if (e.type === 's3') {
+    fields += '<label class="f">Регион</label><select class="in" id="f-region">' +
+      ['ru-central-1', 'ru-west-1'].map(r => '<option' + (e.region === r ? ' selected' : '') + '>' + r + '</option>').join('') +
+      '</select>' +
+      '<label class="f">Хранение, ГБ</label>' + selectStep('draftS3Storage', S3_STEPS.storage) +
+      '<label class="f">Чтение, тыс. операций в месяц</label>' + selectStep('draftS3Read', S3_STEPS.read) +
+      '<label class="f">Запись, тыс. операций в месяц</label>' + selectStep('draftS3Write', S3_STEPS.write) +
+      '<label class="f">Исходящий трафик, ГБ в месяц</label>' + selectStep('draftS3Egress', S3_STEPS.egress) +
+      '<div class="hint-text">У S3 нет конфигурации vCPU/RAM: тарифицируются хранение, операции чтения/записи и трафик.</div>';
+  }
+
+  if (e.type === 'service') {
+    /* одна общая кнопка сохранения вместо сохранения под каждым полем */
+    return fields + priceBlock() +
+      '<div class="d-actions">' +
+        '<button class="btn green" onclick="openRedeployConfirm(\'settings\')">Сохранить</button>' +
+        '<button class="btn white" onclick="setTab(\'overview\')">Отмена</button>' +
+        '<button class="btn danger" onclick="openDelete(\'' + esc(e.id) + '\')">Удалить</button>' +
+      '</div>' +
+      '<div class="hint-text">Кнопка «Сохранить» применяет все поля формы сразу. Изменения конфигурации требуют передеплоя.</div>';
+  }
+
+  /* у базы данных прогноза стоимости в интерфейсе нет */
+  return fields + (e.type === 'db' ? '' : priceBlock()) +
+    '<div class="d-actions">' +
+      '<button class="btn green" onclick="saveEntity(\'' + esc(e.id) + '\')">Сохранить</button>' +
+      '<button class="btn white" onclick="setTab(\'overview\')">Отмена</button>' +
+      '<button class="btn danger" onclick="openDelete(\'' + esc(e.id) + '\')">Удалить</button>' +
+    '</div>';
+}
+
+function cfgPicker(list, currentId, fn, isContainer) {
+  return '<div class="cfg-grid">' + list.map(function (c) {
+    const spec = isContainer
+      ? 'vCPU ' + c.vcpu + ' · RAM ' + ramLabel(c.ram)
+      : 'vCPU ' + c.vcpu + ' · RAM ' + c.ram + ' ГБ · SSD ' + c.ssd + ' ГБ';
+    return '<div class="cfg' + (currentId === c.id ? ' active' : '') + '" data-cfg="' + c.id + '" onclick="' + fn + '(\'' + c.id + '\')">' +
+      '<div class="cfg-name">' + esc(c.name) + (c.tag ? '<span class="cfg-tag">' + esc(c.tag) + '</span>' : '') + '</div>' +
+      '<div class="cfg-desc">' + esc(c.desc) + '</div>' +
+      '<div class="cfg-spec">' + spec + '</div>' +
+      (isContainer ? '<div class="cfg-cost">' + fmt(containerCost(c)) + ' / реплика</div>' : '') +
+    '</div>';
+  }).join('') + '</div>';
+}
+
+function refreshPrice() {
+  const box = $('price-box');
+  if (box) box.innerHTML = priceBlockInner();
+}
+
+function highlightCfg(id) {
+  const grid = document.querySelector('#drawer .cfg-grid');
+  if (grid) Array.prototype.forEach.call(grid.querySelectorAll('.cfg'), function (el) {
+    el.classList.toggle('active', el.getAttribute('data-cfg') === id);
+  });
+  refreshPrice();
+}
+
+function pickDbConfig(id) { st.draftDbConfig = id; highlightCfg(id); }
+function pickRedisConfig(id) { st.draftRedisConfig = id; highlightCfg(id); }
+
+function setDraft(field, v) {
+  st[field] = parseInt(v, 10) || 0;
+  refreshPrice();
+}
+
+function draftSteps(v) {
+  const n = parseInt(v, 10);
+  st.draftSteps = n > 0 ? Math.min(50, n) : 1;
+  refreshPrice();
+}
+
+function diskStepper(field, step, max) {
+  const v = st[field] || 0;
+  return '<div class="repl-ctl" style="max-width:230px">' +
+    '<button class="btn" onclick="bumpDisk(\'' + field + '\',' + (-step) + ',10,' + max + ')">−</button>' +
+    '<span class="val" id="f-' + field + '">' + num(v) + '</span>' +
+    '<button class="btn" onclick="bumpDisk(\'' + field + '\',' + step + ',10,' + max + ')">+</button></div>';
+}
+
+function bumpDisk(field, d, min, max) {
+  st[field] = Math.max(min, Math.min(max, (st[field] || 0) + d));
+  const el = $('f-' + field);
+  if (el) el.textContent = num(st[field]);
+  refreshPrice();
+}
+
+function selectStep(field, opts) {
+  const v = st[field];
+  return '<select class="in" id="f-' + field + '" onchange="setDraft(\'' + field + '\', this.value)">' + opts.map(function (o) {
+    return '<option value="' + o + '"' + (o === v ? ' selected' : '') + '>' + num(o) + '</option>';
+  }).join('') + '</select>';
+}
+
+/* git-провайдер выбирается только на шаге создания; после создания репозиторий заблокирован */
+function setSource(s) {
+  st.draftRepoSource = s;
+  st.draftSource = s;
+  if (st.creating) renderCreate(); else renderDrawer();
+}
+
+function selType() { const e = byId(st.selected); return e ? e.type : 'service'; }
+
+function priceHead(total, note) {
+  return '<div class="price-top-row"><span>Итого в месяц</span><span class="muted">без НДС</span></div>' +
+    '<div class="price-total">' + fmt(total) + '</div>' +
+    '<div class="price-note">' + I.info + '<span>Стоимость зависит от потребления</span></div>' +
+    (note ? '<div class="info">' + I.info + '<span>' + note + '</span></div>' : '');
+}
+
+function pblock(title, tag, rows, total) {
+  return '<div class="pblock"><div class="phead"><span>' + esc(title) + '</span>' +
+      (tag ? '<span class="ptag">' + esc(tag) + '</span>' : '') + '</div>' +
+    rows.map(function (r) {
+      return '<div class="pline"><span>' + esc(r[0]) + '</span><span>' + esc(r[1]) + '</span></div>';
+    }).join('') +
+    '<div class="pcost">Стоимость: ' + fmt(total) + '</div></div>';
+}
+
+function priceBlockInner() {
+  const t = selType();
+  if (t === 'redis') return redisPriceInner();
+  if (t === 's3') return s3PriceInner();
+  if (t === 'workflow') return wfPriceInner();
+  if (t === 'pipeline') return pipelinePriceInner();
+  return servicePriceInner();
+}
+
+function pipelinePriceInner() {
+  const e = byId(st.selected);
+  const steps = st.draftSteps || (e ? e.steps : 3) || 3;
+  const total = pipelineCost(steps);
+  return '<div class="price-top-row"><span>Стоимость запуска</span><span class="muted">без НДС</span></div>' +
+    '<div class="price-total">' + fmt(total) + '</div>' +
+    '<div class="price-note">' + I.info + '<span>Разовый запуск сценария деплоя</span></div>' +
+    pblock('Pipeline', '', [
+      ['Шагов в сценарии', String(steps)],
+      ['Шаг деплоя', fmt(RATES.container.step)]
+    ], total);
+}
+
+function servicePriceInner() {
+  const vcpu = typeof st.draftVcpu === 'number' ? st.draftVcpu : 0.1;
+  const ramMb = typeof st.draftRamMb === 'number' ? st.draftRamMb : 256;
+  const reps = typeof st.draftReplicas === 'number' ? st.draftReplicas : 1;
+  const cpu = vcpu * RATES.container.vcpu * HOURS;
+  const ram = (ramMb / 1024) * RATES.container.ram * HOURS;
+  const per = cpu + ram;
+  const fixed = DEPLOY_COST + ARTIFACT_COST + REPO_COST;
+  const total = fixed + per * reps;
+  return '<div class="price-top-row"><span>Итого в месяц</span><span class="muted">без НДС</span></div>' +
+    '<div class="price-total">' + fmt(total) + '</div>' +
+    '<div class="price-note">' + I.info + '<span>Стоимость зависит от потребления</span></div>' +
+    '<div class="info">' + I.info + '<span>Container Apps умножается на количество реплик (' + reps + ').</span></div>' +
+    pblock('Workflow Studio', '', [['Деплой', '1 шаг · ' + fmt(DEPLOY_COST)]], DEPLOY_COST) +
+    pblock('Container Apps', '', [
+      ['Конфигурация', cpuText(vcpu) + ' vCPU · ' + ramText(ramMb)],
+      ['vCPU ' + cpuText(vcpu), fmt(cpu)],
+      ['RAM ' + ramText(ramMb), fmt(ram)],
+      ['Реплики', String(reps)]
+    ], per) +
+    pblock('Artifact Registry', 'Базовый', [
+      ['Хранение 1 ГБ', fmt(RATES.container.artifactStore * HOURS)],
+      ['Скачивание 1 ГБ', rate(RATES.container.artifactEgress)]
+    ], ARTIFACT_COST) +
+    pblock('Репо', '', [
+      ['Хранение данных 1 ГБ', fmt(RATES.container.repoStore * HOURS)],
+      ['Скачивание данных 1 ГБ', rate(RATES.container.repoEgress)]
+    ], REPO_COST);
+}
+
+function redisPriceInner() {
+  const c = pickById(REDIS_CONFIGS, st.draftRedisConfig);
+  const disk = typeof st.draftRedisDisk === 'number' ? st.draftRedisDisk : c.ssd;
+  const x = redisCost(c, disk);
+  return priceHead(x.total, 'Managed Redis: vCPU, RAM и SSD тарифицируются по часам (приложение №7.EVO.16).') +
+    pblock('Managed Redis', c.name, [
+      ['vCPU ' + c.vcpu + ' × ' + rate(RATES.redis.vcpu) + '/час', fmt(x.cpu)],
+      ['RAM ' + c.ram + ' ГБ × ' + rate(RATES.redis.ram) + '/ГБ·час', fmt(x.ram)],
+      ['SSD ' + num(disk) + ' ГБ × ' + rate(RATES.redis.ssd) + '/ГБ·час', fmt(x.ssd)]
+    ], x.total);
+}
+
+function s3PriceInner() {
+  const o = {
+    storage: typeof st.draftS3Storage === 'number' ? st.draftS3Storage : 100,
+    read: typeof st.draftS3Read === 'number' ? st.draftS3Read : 1000,
+    write: typeof st.draftS3Write === 'number' ? st.draftS3Write : 100,
+    egress: typeof st.draftS3Egress === 'number' ? st.draftS3Egress : 100
+  };
+  const x = s3Cost(o);
+  return priceHead(x.total, 'Object Storage: хранение, операции и исходящий трафик (приложение №7.EVO.3). Конфигурации vCPU/RAM у S3 нет.') +
+    pblock('Object Storage', '', [
+      ['Хранение ' + num(o.storage) + ' ГБ × ' + rate(RATES.s3.storage), fmt(x.storage)],
+      ['Чтение ' + num(o.read) + ' тыс. × ' + rate(RATES.s3.read), fmt(x.read)],
+      ['Запись ' + num(o.write) + ' тыс. × ' + rate(RATES.s3.write), fmt(x.write)],
+      ['Плюс трафик ' + num(o.egress) + ' ГБ × ' + rate(RATES.s3.egress), fmt(x.egress)]
+    ], x.total);
+}
+
+function wfPriceInner() {
+  const e = byId(st.selected);
+  const steps = st.draftSteps || (e ? e.steps : 3) || 3;
+  const runs = typeof st.draftWfRuns === 'number' ? st.draftWfRuns : 1000;
+  const x = wfCost(steps, runs);
+  return priceHead(x.total, 'Workflow Studio: тариф за запуск шага (приложение №7.EVO.34), считается по фактическим запускам.') +
+    pblock('Workflow Studio', '', [
+      ['Запуск шага', fmt(RATES.workflow.step)],
+      ['Шагов в сценарии', String(steps)],
+      ['Запусков в месяц', num(runs)]
+    ], x.total);
+}
+
+function priceBlock() {
+  return '<label class="f">Прогноз стоимости</label><div class="price" id="price-box">' + priceBlockInner() + '</div>';
+}
+
+function saveEntity(id, silent) {
+  const e = byId(id); if (!e) return;
+  const nameEl = $('f-name');
+  const name = nameEl ? nameEl.value.trim() : e.name;
+  if (!name) { toast('Укажите название'); return; }
+  e.name = name;
+  if (e.type === 'service') {
+    /* репозиторий после создания не редактируется — берём только то, что можно менять */
+    const brEl = $('f-branch'); if (brEl) e.branch = brEl.value;
+    const portEl = $('f-port'); if (portEl) { const p = parseInt(portEl.value, 10); if (p > 0) e.port = p; }
+    /* одно значение реплик: бэк отправляет его и как минимум, и как максимум */
+    e.replicas = Math.max(1, Math.min(10, typeof st.draftReplicas === 'number' ? st.draftReplicas : repCount(e)));
+    e.replicasMin = e.replicas;
+    e.replicasMax = e.replicas;
+    if (typeof st.draftVcpu === 'number') e.vcpu = st.draftVcpu;
+    if (typeof st.draftRamMb === 'number') e.ramMb = st.draftRamMb;
+  }
+  if (e.type === 'workflow') {
+    const d = $('f-desc'); if (d) e.description = d.value;
+    const s = $('f-steps'); if (s) { const n = parseInt(s.value, 10); if (n > 0) e.steps = n; }
+    else if (st.draftSteps) e.steps = st.draftSteps;
+    if (typeof st.draftWfRuns === 'number') e.wfRuns = st.draftWfRuns;
+  }
+  if (e.type === 'pipeline') {
+    const brEl = $('f-branch'); if (brEl) e.branch = brEl.value;
+    const sEl = $('f-steps');
+    if (sEl) { const n = parseInt(sEl.value, 10); if (n > 0) e.steps = Math.min(50, n); }
+    else if (st.draftSteps) e.steps = st.draftSteps;
+  }
+  if (e.type === 'db') {
+    /* у базы данных в настройках только название */
+  }
+  if (e.type === 'redis') {
+    if (st.draftRedisConfig) e.redisConfig = st.draftRedisConfig;
+    e.redisDisk = Math.max(10, Math.min(500, st.draftRedisDisk || e.redisDisk || 20));
+  }
+  if (e.type === 's3') {
+    const r = $('f-region'); if (r) e.region = r.value;
+    if (typeof st.draftS3Storage === 'number') e.s3Storage = st.draftS3Storage;
+    if (typeof st.draftS3Read === 'number') e.s3Read = st.draftS3Read;
+    if (typeof st.draftS3Write === 'number') e.s3Write = st.draftS3Write;
+    if (typeof st.draftS3Egress === 'number') e.s3Egress = st.draftS3Egress;
+  }
+  saveSpaces();
+  render();
+  if (!silent) toast('Настройки сохранены');
+}
+
+/* Деплой запускается только по кнопке: создание само ничего не разворачивает. */
+function deployEntity(id) {
+  const e = byId(id); if (!e) return;
+  saveEntity(id, true);
+  const x = byId(id); if (x) startDeploy(x, 'deploy');
+}
+
+/* ---------- деплои и логи (для сервиса) ---------- */
+/* до первого деплоя сущности ещё нет — вкладки показывают только пустое состояние */
+function emptyTab(title, text, actionLabel, actionJs) {
+  return '<div class="empty-tab"><span class="ico">' + I.clock + '</span>' +
+    '<b>' + esc(title) + '</b><span>' + esc(text) + '</span>' +
+    (actionLabel ? '<button class="btn green sm" onclick="' + actionJs + '">' + esc(actionLabel) + '</button>' : '') +
+    '</div>';
+}
+
+/* деплои сервиса: у активного — «Остановить», у деплоя в очереди — «Отменить» */
+function deploysOf(e) {
+  if (!Array.isArray(e.deploys)) {
+    const created = e.created instanceof Date ? e.created : new Date(e.created || Date.now());
+    e.deploys = [
+      { run: '#1842', branch: e.branch || 'main', status: 'running', at: new Date(), dur: '1 мин 12 с' },
+      { run: '#1841', branch: e.branch || 'main', status: 'queued', at: new Date(), dur: '—' },
+      { run: '#1811', branch: e.branch || 'main', status: 'ok', at: new Date(created.getTime() - 2 * DAY), dur: '1 мин 04 с' },
+      { run: '#1798', branch: e.branch || 'main', status: 'err', at: new Date(created.getTime() - 5 * DAY), dur: '48 с' }
+    ];
+  }
+  return e.deploys;
+}
+
+function deployActionCell(e, d) {
+  const id = esc(e.id), run = esc(d.run);
+  if (d.status === 'running') {
+    return '<button class="btn white sm" onclick="stopDeploy(\'' + id + '\',\'' + run + '\')">Остановить</button>';
+  }
+  if (d.status === 'queued') {
+    return '<button class="btn white sm" onclick="stopDeploy(\'' + id + '\',\'' + run + '\')">Отменить</button>';
+  }
+  if (d.status === 'cancelled') {
+    return '<button class="btn white sm" disabled title="Деплой уже остановлен">Отменён</button>';
+  }
+  return '<button class="btn white sm" disabled title="Деплой уже завершён">Остановить</button>';
+}
+
+function stopDeploy(id, run) {
+  const e = byId(id); if (!e) return;
+  const d = deploysOf(e).filter(function (x) { return x.run === run; })[0];
+  if (!d || (d.status !== 'running' && d.status !== 'queued')) return;
+  const wasRunning = d.status === 'running';
+  d.status = 'cancelled';
+  d.dur = wasRunning ? 'остановлен' : 'отменён';
+  if (wasRunning && e.status === 'deploying') e.status = e.deployed ? 'ok' : 'new';
+  e.updated = new Date();
+  saveSpaces();
+  render();
+  toast('Деплой ' + run + (wasRunning ? ' остановлен' : ' отменён'));
+}
+
+function tabDeploys(e) {
+  if (!isDeployed(e)) {
+    return '<div class="section"><h4>Деплои</h4>' +
+      emptyTab('Пока нет активных деплоев',
+        'Данные появятся после первого деплоя. Запустите его кнопкой «Задеплоить» на вкладке «Обзор».',
+        'Задеплоить', "deployEntity('" + esc(e.id) + "')") +
+      '</div>';
+  }
+  const rows = deploysOf(e);
+  return '<div class="section"><h4>История деплоев</h4>' +
+    '<table class="hist"><thead><tr><th>Run</th><th>Ветка</th><th>Статус</th><th>Дата</th><th>Длительность</th><th></th></tr></thead><tbody>' +
+    rows.map(function (d) {
+      return '<tr><td class="mono">' + esc(d.run) + '</td><td>' + esc(d.branch) + '</td><td>' + statusBadge(d.status) + '</td>' +
+        '<td>' + esc(absTime(new Date(d.at))) + '</td><td>' + esc(d.dur) + '</td><td>' + deployActionCell(e, d) + '</td></tr>';
+    }).join('') +
+    '</tbody></table>' +
+    '<div class="hint-text">Активный деплой можно остановить, деплой в очереди — отменить. Кнопка неактивна у завершённых прогонов.</div></div>';
+}
+
+function tabLogs(e) {
+  if (!isDeployed(e)) {
+    return '<div class="section"><h4>Логи</h4>' +
+      emptyTab('Логов пока нет', 'Логи появятся после первого деплоя.',
+        'Задеплоить', "deployEntity('" + esc(e.id) + "')") +
+      '</div>';
+  }
+  const body = e.type === 'pipeline' ? pipelineLogs(e) : appLogs();
+  return '<div class="section"><h4>Логи</h4>' +
+    '<div class="logbox" id="user-logs">' + body + '</div></div>';
+}
+
+/* логи прогона pipeline: шаги сценария, а не логи приложения */
+function pipelineLogs(e) {
+  const steps = e.steps || 3;
+  return '<div><span class="t">18:24:01</span> <span class="s">INFO</span>  run #1842 started · branch ' + esc(e.branch || 'main') + '</div>' +
+    '<div><span class="t">18:24:03</span> <span class="s">INFO</span>  step 1/' + steps + ' checkout</div>' +
+    '<div><span class="t">18:24:19</span> <span class="s">INFO</span>  step 2/' + steps + ' build image</div>' +
+    '<div><span class="t">18:24:52</span> <span class="w">WARN</span>  cache miss, rebuilding layer</div>' +
+    '<div><span class="t">18:25:06</span> <span class="s">INFO</span>  step 3/' + steps + ' push artifact · 128 МБ</div>' +
+    '<div><span class="t">18:25:11</span> <span class="s">INFO</span>  run #1842 finished · 1 мин 10 с</div>';
+}
+function appLogs() {
+  return '<div><span class="t">16:42:01</span> <span class="s">INFO</span>  server started on 0.0.0.0:8080</div>' +
+    '<div><span class="t">16:42:02</span> <span class="s">INFO</span>  connected to db.internal:5432</div>' +
+    '<div><span class="t">16:42:07</span> <span class="s">INFO</span>  GET / 200 12ms</div>' +
+    '<div><span class="t">16:42:19</span> <span class="s">INFO</span>  POST /orders 201 48ms</div>' +
+    '<div><span class="t">16:43:20</span> <span class="w">WARN</span>  slow query 812ms</div>' +
+    '<div><span class="t">16:43:21</span> <span class="s">INFO</span>  retry scheduled: cache warmup</div>' +
+    '<div><span class="t">16:44:02</span> <span class="e">ERROR</span>  GET /checkout 502 upstream timeout</div>' +
+    '<div><span class="t">16:44:05</span> <span class="s">INFO</span>  GET / 200 9ms</div>';
+}
+
+/* ---------- настройки пространства: переименование, удаление, Runners ---------- */
+function drawerSettings() {
+  const sp = currentSpace();
+  let project = '';
+  if (sp) {
+    project =
+      '<div class="section"><h4>Пространство</h4><div class="box">' +
+        '<label class="f" style="margin-top:0">Название</label>' +
+        '<input class="in" id="sp-name" maxlength="80" value="' + esc(sp.name) + '" autocomplete="off">' +
+        '<div class="d-actions" style="margin-top:10px"><button class="btn green sm" onclick="renameProject()">Сохранить название</button></div>' +
+        '<div class="hint-text">Название видно в крошках и в списке пространств.</div>' +
+      '</div></div>';
+  } else {
+    project =
+      '<div class="section"><h4>Пространство</h4><div class="box">' +
+        '<p style="margin:0;color:#5b6676;line-height:1.5">Пространство не выбран. Откройте пространство или нажмите шестерёнку на его карточке.</p>' +
+      '</div></div>';
+  }
+  const danger = sp ?
+      '<div class="section"><h4>Удаление пространства</h4><div class="box">' +
+        '<div class="box-row"><span>Объектов в пространстве</span><span>' + sp.entities.length + '</span></div>' +
+        '<label class="f">Введите название пространства для подтверждения</label>' +
+        '<input class="in" id="sp-del" autocomplete="off" placeholder="' + esc(sp.name) + '" oninput="validateProjectDelete()">' +
+        '<div class="d-actions" style="margin-top:10px"><button class="btn danger sm" id="sp-del-btn" disabled onclick="deleteProject()">Удалить пространство</button></div>' +
+        '<div class="hint-text">Удаляются карточки пространства и связанные данные. Действие необратимо.</div>' +
+      '</div></div>' : '';
+  return '<div class="dr-head">' +
+      '<div class="dr-title-row">' +
+        '<div><h2 class="dr-title">Настройки пространства</h2><div class="dr-sub">' + esc(sp ? sp.name : 'Пространство и раннеры') + '</div></div>' +
+        '<button class="modal-close" onclick="closeDrawer()" title="Закрыть">×</button>' +
+      '</div>' +
+    '</div>' +
+    '<div class="dr-body">' +
+      project +
+      '<div class="section"><h4>Runners</h4><div class="box">' +
+        '<div class="box-row"><span>Пул</span><span>worker-pool-2 · 2 vCPU · 4 GB</span></div>' +
+        '<div class="box-row"><span>Статус</span><span>' + statusBadge('ok') + '</span></div>' +
+        '<div class="box-row"><span>Баланс</span><span>83,34 ₽</span></div>' +
+      '</div></div>' +
+      danger +
+    '</div>';
+}
+
+function openProjectSettings(id) {
+  const sp = spaceById(id);
+  if (!sp) return;
+  st.currentSpaceId = id;
+  st.selected = 'settings';
+  st.tab = 'settings';
+  renderDrawer();
+  openDrawerEl();
+}
+
+function renameProject() {
+  const sp = currentSpace();
+  if (!sp) return;
+  const inp = $('sp-name');
+  const name = inp ? inp.value.trim() : '';
+  if (!name) { toast('Укажите название пространства'); return; }
+  sp.name = name;
+  saveSpaces();
+  render();
+  toast('Пространство переименован');
+}
+
+function validateProjectDelete() {
+  const sp = currentSpace();
+  const inp = $('sp-del'), btn = $('sp-del-btn');
+  if (!sp || !inp || !btn) return;
+  btn.disabled = inp.value.trim() !== sp.name;
+}
+
+function deleteProject() {
+  const sp = currentSpace();
+  if (!sp) return;
+  const name = sp.name;
+  st.spaces = st.spaces.filter(function (s) { return s.id !== sp.id; });
+  st.currentSpaceId = null;
+  saveSpaces();
+  closeDrawer(true);
+  st.view = 'spaces';
+  st.editorId = null;
+  render();
+  toast('Пространство «' + name + '» удалён');
+}
+
+/* =========================================================
+   Клавиатура и клики
+   ========================================================= */
+document.addEventListener('keydown', function (e) {
+  if (e.key !== 'Escape') return;
+  if (st.consKind) { closeConsumption(); return; }
+  if (st.modal) { closeModal(); return; }
+  if (st.creating) { cancelCreate(); return; }
+  if (st.selected) closeDrawer();
+});
+
+/* =========================================================
+   Старт
+   ========================================================= */
+loadPositions();
+loadSpaces();
+render();
+</script>
+</body></html>
